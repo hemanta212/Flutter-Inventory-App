@@ -31,12 +31,48 @@ class _SellingFormState extends State<SellingForm>{
   Widget build(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),// AppBar
+    final drawerHeader = UserAccountsDrawerHeader(
+      accountName: Text('User Name'),
+      accountEmail: Text('user.name@email.com'),
+      currentAccountPicture: CircleAvatar(
+        child: FlutterLogo(size: 42.0),
+        backgroundColor: Colors.white,
+      ),
+      otherAccountsPictures: <Widget>[
+        CircleAvatar(
+          child: Text('A'),
+          backgroundColor: Colors.yellow,
+        ),
+        CircleAvatar(
+          child: Text('B'),
+          backgroundColor: Colors.red,
+        )
+      ],
+    );
+   Drawer getDrawer(){
+      return Drawer(
+        child: ListView(
+          children: <Widget>[
+            drawerHeader,
+            ListTile(
+              title: Text("Home"),
+              onTap: () => Navigator.of(context).pop(),
+            ),
+            ListTile(
+              title: Text("Register Item"),
+              onTap: () => Navigator.of(context).pushNamed("/itemForm"),
+            ),
+            ListTile(
+              title: Text('Add Stock'),
+              onTap: () => Navigator.of(context).pushNamed("/itemEntryForm"),
+            ),
+          ]
+        )
+      );
+    }
 
-      body: Form(
+    Form getForm(){
+      return Form(
         key: _formKey,
         child: Padding(
           padding: EdgeInsets.all(_minimumPadding * 2),
@@ -174,21 +210,20 @@ class _SellingFormState extends State<SellingForm>{
             ] // Column widget list
           ) //Column
         ) // Padding
-      ) // Container
-    );// Scaffold
-  }
+      ); // Container
 
-  /*
-  void navigateTo({String title}) async {
-    bool result = await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return ItemForm(title:title);
-    }));
-
-    /*if (result == true){
-      updateListView();
     }
-    */
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+      ),// AppBar
+
+      drawer: getDrawer(),
+
+      body: getForm(),   
+     );// Scaffold
+    
   }
-  */
 
 }

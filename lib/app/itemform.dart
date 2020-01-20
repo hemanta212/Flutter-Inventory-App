@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:bk_app/app/itementryform.dart';
-
 
 class ItemForm extends StatefulWidget {
   String title;
@@ -80,7 +78,6 @@ class _ItemForm extends State<ItemForm>{
                           }
                         });
                         */
-                        navigateTo(title: "Register stock");
                         debugPrint("Save button clicked");
                       }
                     ) // RaisedButton Calculate
@@ -126,18 +123,4 @@ class _ItemForm extends State<ItemForm>{
     );
   } // genTextField function
 
-  void navigateTo({String title}) async {
-    bool result = await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return ItemEntryForm(title:title);
-    }));
-
-    /*if (result == true){
-      updateListView();
-    }
-    */
-  }
-
-
-
 }
-
