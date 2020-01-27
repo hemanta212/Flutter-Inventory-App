@@ -24,6 +24,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.2
 
+  sqflite: any
+  path_provider: any
+  intl: ^0.16.1
+  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

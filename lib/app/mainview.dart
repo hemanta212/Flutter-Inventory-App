@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bk_app/app/sellingform.dart';
 import 'package:bk_app/app/itemform.dart';
 import 'package:bk_app/app/itementryform.dart';
+import 'package:bk_app/app/itemlist.dart';
 
 class MainView extends StatelessWidget {
   @override
@@ -19,7 +20,7 @@ class MainView extends StatelessWidget {
         "/itemForm": (BuildContext context) => ItemForm(title: "Register Item"), 
         "/itemEntryForm": (BuildContext context) => ItemEntryForm(title: "Stock Entry"), 
       },
-      home: SellingForm(title: 'Register sales'),
+      home: ItemList(),
     );
 
   }

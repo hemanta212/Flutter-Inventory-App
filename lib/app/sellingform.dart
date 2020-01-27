@@ -221,9 +221,9 @@ class _SellingFormState extends State<SellingForm>{
 
       drawer: getDrawer(),
 
-      body: getForm(),   
+      body: getForm(),
      );// Scaffold
-    
+
   }
 
 }
