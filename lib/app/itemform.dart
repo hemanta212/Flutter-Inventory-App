@@ -38,12 +38,14 @@ class _ItemForm extends State<ItemForm>{
   TextEditingController itemNickNameController = TextEditingController();
   TextEditingController wholeSellerNameController = TextEditingController();
 
-  var displayResult = '';
 
   @override
   Widget build(BuildContext context){
 
     TextStyle textStyle = Theme.of(context).textTheme.title;
+
+    itemNameController.text = item.name;
+    itemNickNameController.text = item.nickName;
 
     return WillPopScope (
       onWillPop: () {
@@ -53,6 +55,12 @@ class _ItemForm extends State<ItemForm>{
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.title),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              moveToLastScreen();
+            }
+          )
         ),// AppBar
 
       body: Form(
@@ -126,6 +134,7 @@ class _ItemForm extends State<ItemForm>{
   );
 
 }
+
   void moveToLastScreen() {
     Navigator.pop(context, true);
   }
@@ -169,7 +178,6 @@ class _ItemForm extends State<ItemForm>{
   // Update the description of the Item obj
   void updateItemNickName() {
     item.nickName = itemNickNameController.text;
-    debugPrint("nickname name changed");
   }
 
   // Update the description of the Item obj

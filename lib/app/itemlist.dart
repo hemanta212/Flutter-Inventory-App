@@ -48,21 +48,24 @@ class ItemListState extends State<ItemList> {
       itemCount: count,
       itemBuilder: (BuildContext context, int position) {
         return Card(
-            color: Colors.white,
+            color: Colors.black,
             elevation: 2.0,
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: Colors.yellow,
+                backgroundColor: Colors.red,
                 child: Icon(Icons.keyboard_arrow_right),
               ),
               title: Text(this.itemList[position].name, style: nameStyle),
-              subtitle: Text(this.itemList[position].name),
+              subtitle: Text(this.itemList[position].nickName),
+
+              /*
               trailing: GestureDetector(
                 child: Icon(Icons.delete, color: Colors.grey),
                 onTap: () {
                   _delete(context, itemList[position]);
                 },
-              ),
+              ),*/
+
               onTap: () {
                 navigateToDetail(this.itemList[position], 'Edit Item');
               },

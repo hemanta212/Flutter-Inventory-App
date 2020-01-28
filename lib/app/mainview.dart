@@ -14,6 +14,7 @@ class MainView extends StatelessWidget {
         brightness: Brightness.dark,
         primaryColor: Colors.indigo,
         accentColor: Colors.indigoAccent,
+        primarySwatch: Colors.deepPurple,
       ), // ThemeData
       routes: <String, WidgetBuilder>{
         "/spForm": (BuildContext context) => SellingForm(title: "Register Sales"), 
