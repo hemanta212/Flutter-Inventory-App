@@ -11,17 +11,19 @@ class MainView extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Bookkeeping app',
       theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: Colors.indigo,
-        accentColor: Colors.indigoAccent,
+        //brightness: Brightness.dark,
+        //primaryColor: Colors.indigo,
+        //accentColor: Colors.indigoAccent,
         primarySwatch: Colors.deepPurple,
       ), // ThemeData
       routes: <String, WidgetBuilder>{
-        "/spForm": (BuildContext context) => SellingForm(title: "Register Sales"), 
-        "/itemForm": (BuildContext context) => ItemForm(title: "Register Item"), 
-        "/itemEntryForm": (BuildContext context) => ItemEntryForm(title: "Stock Entry"), 
+        "/spForm": (BuildContext context) => SellingForm(title: "Register Sales"),
+        "/itemForm": (BuildContext context) => ItemForm(title: "Register Item"),
+        "/itemEntryForm": (BuildContext context) => ItemEntryForm(title: "Stock Entry"),
+
+        "/itemList": (BuildContext context) => ItemList(),
       },
-      home: ItemList(),
+      home: SellingForm(title: "Sales Entry"),
     );
 
   }

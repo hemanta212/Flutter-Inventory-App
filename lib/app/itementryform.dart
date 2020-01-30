@@ -1,20 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/utils/window.dart';
+import 'package:bk_app/utils/scaffold.dart';
+import 'package:bk_app/models/item.dart';
 
 class ItemEntryForm extends StatefulWidget {
   String title;
+  final Item item;
 
-  ItemEntryForm({this.title});
+  ItemEntryForm({this.item, this.title});
 
   @override
-  State<StatefulWidget> createState() => _ItemEntryForm();
-
+  State<StatefulWidget> createState(){
+    return _ItemEntryForm(this.item, this.title);
+  }
 }
+
 
 class _ItemEntryForm extends State<ItemEntryForm>{
 
   // Variables
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
+
+  DbHelper databaseHelper = DbHelper();
+
+  String title;
+  Item item;
+
+  String displayString = '';
+
+  _ItemEntryForm(this.item, this.title);
 
   @override
   void initState() {
@@ -25,21 +41,23 @@ class _ItemEntryForm extends State<ItemEntryForm>{
   TextEditingController itemNumberController = TextEditingController();
   TextEditingController costPriceController = TextEditingController();
   TextEditingController markedPriceController = TextEditingController();
-  TextEditingController wholeSellerNameController = TextEditingController();
-
-  var displayResult = '';
 
   @override
   Widget build(BuildContext context){
 
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),// AppBar
+    // Fill values in text field for updating.
+    if (item != null){
+      debugPrint("text refill called");
+      itemNameController.text = item.name;
+      itemNumberController.text = '${item.totalStock}';
+      costPriceController.text = '${item.costPrice}';
+      markedPriceController.text = '${item.markedPrice}';
+    }
 
-      body: Form(
+    Widget buildForm() {
+      return Form(
         key: _formKey,
         child: Padding(
           padding: EdgeInsets.all(_minimumPadding * 2),
@@ -47,25 +65,46 @@ class _ItemEntryForm extends State<ItemEntryForm>{
             children: <Widget>[
 
               // Item name
-              genTextField(labelText: "Item name", hintText: "Name of item you sold", textStyle: textStyle, controller: itemNameController),
+              WindowUtils.genTextField(
+                labelText: "Item name",
+                hintText: "Name of item you sold",
+                textStyle: textStyle,
+                controller: itemNameController,
+                onChanged: updateItemName,
+              ),
 
               // No of items
-              genTextField(labelText: "No of items", textStyle: textStyle, controller: itemNumberController, keyboardType: TextInputType.number),
+              WindowUtils.genTextField(
+                labelText: "No of items",
+                textStyle: textStyle,
+                controller: itemNumberController,
+                keyboardType: TextInputType.number,
+                onChanged: () {},
+              ),
+
               // TODO
-              /* Provide user to register using  Big unit terms like  
+              /* Provide user to register using  Big unit terms like
               1 box = 15 items
               1 cartoon = 5 box
               */
 
-              // Cost price 
-              genTextField(labelText: "Total cost price", textStyle: textStyle, controller: costPriceController, keyboardType: TextInputType.number),
+              // Cost price
+              WindowUtils.genTextField(
+                labelText: "Total cost price",
+                textStyle: textStyle,
+                controller: costPriceController,
+                keyboardType: TextInputType.number,
+                onChanged: updateCostPrice,
+              ),
 
-              // Marked price 
-              genTextField(labelText: "Expected selling price", textStyle: textStyle, controller: markedPriceController, keyboardType: TextInputType.number),
-
-              // Wholeseller name: They are separate entity of their own with properties like name, number, location, etc
-              genTextField(labelText: "Wholeseller name", textStyle: textStyle, controller: wholeSellerNameController),
-
+              // Marked price
+              WindowUtils.genTextField(
+                labelText: "Expected selling price",
+                textStyle: textStyle,
+                controller: markedPriceController,
+                keyboardType: TextInputType.number,
+                onChanged: updateMarkedPrice,
+              ),
 
             // save
             Padding(
@@ -76,17 +115,14 @@ class _ItemEntryForm extends State<ItemEntryForm>{
                   Expanded(
                     child: RaisedButton(
                       color: Theme.of(context).accentColor,
-                      textColor: Theme.of(context).primaryColorDark,
                       child: Text("Save", textScaleFactor: 1.5),
                       onPressed: () {
-                        /*
                         setState( () {
+                          debugPrint("Save button clicked");
                           if (_formKey.currentState.validate()) {
-                            this.displayResult = _calculateTotalReturns();
+                            _save();
                           }
                         });
-                        */
-                        debugPrint("Save button clicked");
                       }
                     ) // RaisedButton Calculate
                   ), //Expanded
@@ -99,37 +135,101 @@ class _ItemEntryForm extends State<ItemEntryForm>{
             ] // Column widget list
           ) //Column
         ) // Padding
-      ) // Container
-    );// Scaffold
+      ); // Container
   }
 
-  Widget genTextField({String labelText, String hintText = '', TextStyle textStyle, TextEditingController controller, TextInputType keyboardType = TextInputType.text} ) {
-    return Padding(
-      padding: EdgeInsets.only(top:_minimumPadding, bottom:_minimumPadding),
-      child: TextFormField(
-        keyboardType: keyboardType,
-        style: textStyle,
-        controller: controller,
-        validator: (String value) {
-          if (value.isEmpty) {
-            return "Please enter $labelText";
-          }
-        },
-        decoration: InputDecoration(
-          labelText: labelText,
-          labelStyle: textStyle,
-          hintText: hintText,
-          errorStyle: TextStyle(
-            color: Colors.yellowAccent,
-            fontSize: 15.0
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5.0)
-          )
-        ),
-      ), // Textfield
-    );
-  } // genTextField function
+  return CustomScaffold.setScaffold(context, this.title, buildForm);
+}
+
+  void onSave() {
+    setState( () {
+      debugPrint("Save button clicked");
+      if (_formKey.currentState.validate()) {
+        debugPrint("validated");
+        _save();
+      }
+    });
+  }
+
+  void updateItemName() {
+    var name = itemNameController.text;
+    Future<Item> itemFuture = databaseHelper.getItem(name);
+    itemFuture.then( (newItem) {
+      item = newItem;
+      if (item == null){
+        this.displayString = "Unregistered item";
+        debugPrint('Unregistered Got item as $name');
+      }else {
+        this.displayString = "";
+        debugPrint('Registered Got item as $name');
+      }
+    },
+    onError: (e){
+      debugPrint('UpdateitemName Error::  $e');
+    });
+  }
+
+  void updateCostPrice(){
+    var a = item.id;
+    debugPrint('ITem id $a');
+    item.costPrice = double.parse(costPriceController.text);
+  }
+
+  void updateMarkedPrice(){
+    item.markedPrice = double.parse(markedPriceController.text);
+  }
+
+
+  // Save data to database
+  void _save() async {
+    if (item == null){
+      WindowUtils.showAlertDialog(context, "Status:", "Item not registered");
+      return;
+    }
+    // Update the cost price
+    double itemNumber = double.parse(itemNumberController.text);
+    item.addStock(itemNumber);
+
+    int result;
+    if (item.id != null) {
+      // Case 1: Update operation
+      debugPrint("Updated item");
+      result = await databaseHelper.updateItem(item);
+    } else {
+      // Case 2: Insert operation
+      result = await databaseHelper.insertItem(item);
+    }
+
+    if (result != 0) {
+      // Success
+      WindowUtils.showAlertDialog(context, 'Status', 'Stock updated successfully');
+    } else {
+      // Failure
+      WindowUtils.showAlertDialog(context, 'Status', 'Problem updating stock, try again!');
+    }
+  }
+
+  // Delete item data
+  void _delete() async {
+    WindowUtils.moveToLastScreen(context);
+    if (item.id == null) {
+      // Case 1: Abandon new item creation
+      WindowUtils.showAlertDialog(context, 'Status', 'Item not created');
+      return;
+    }
+
+    // Case 2: Delete item from database
+    int result = await databaseHelper.deleteItem(item.id);
+
+
+    if (result != 0) {
+      // Success
+      WindowUtils.showAlertDialog(context, 'Status', 'Item deleted successfully');
+    } else {
+      // Failure
+      WindowUtils.showAlertDialog(context, 'Status', 'Problem deleting item, try again!');
+    }
+  }
 
 }
 

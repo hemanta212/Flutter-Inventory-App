@@ -6,10 +6,30 @@ class Item {
   String _description;
   double _costPrice;
   double _markedPrice;
+  double _totalStock = 0.0;
 
-  Item(this._name, this._costPrice, this._markedPrice, [this._description]);
+  Item(
+    this._name,
+    [this._nickName,
+      this._costPrice,
+      this._markedPrice,
+      this._description,
+      this._totalStock
+      // NOTE : various item custom units
+    ]
+  );
 
-  Item.withId(this._id, this._name, this._costPrice, this._markedPrice, [this._description]);
+  Item.withId(
+    this._id,
+    this._name,
+    [
+      this._nickName,
+      this._costPrice,
+      this._markedPrice,
+      this._description,
+      this._totalStock
+   ]
+  );
 
   int get id => _id;
 
@@ -22,6 +42,8 @@ class Item {
   String get description => _description;
 
   double get markedPrice => _markedPrice;
+
+  double get totalStock => _totalStock;
 
 
   set name(String newName) {
@@ -46,6 +68,10 @@ class Item {
 
   set markedPrice(double newMarkedPrice) {
     this._markedPrice = newMarkedPrice;
+  }
+
+  double addStock(double addedStock){
+    this._totalStock += addedStock;
   }
 
   // Convert a note obj to map obj

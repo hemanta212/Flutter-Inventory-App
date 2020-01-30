@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:bk_app/utils/window.dart';
+import 'package:bk_app/utils/scaffold.dart';
 
 class SellingForm extends StatefulWidget {
   String title;
-
   SellingForm({this.title});
 
   @override
@@ -16,9 +17,22 @@ class _SellingFormState extends State<SellingForm>{
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
 
+  List<String> _forms = ['Sales form', 'Stock entry form', 'Item entry Form'];
+  String _currentFormSelected = '';
+
+/*
+  Map _stringToForm = {
+    'entryForm': Forms.genItemEntryForm,
+  };
+*/
+
+  var getForm;
+
   @override
   void initState() {
     super.initState();
+    _currentFormSelected = _forms[0];
+    // getForm = salesForm;
   }
 
   TextEditingController itemNameController = TextEditingController();
@@ -31,53 +45,29 @@ class _SellingFormState extends State<SellingForm>{
   Widget build(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    final drawerHeader = UserAccountsDrawerHeader(
-      accountName: Text('User Name'),
-      accountEmail: Text('user.name@email.com'),
-      currentAccountPicture: CircleAvatar(
-        child: FlutterLogo(size: 42.0),
-        backgroundColor: Colors.white,
-      ),
-      otherAccountsPictures: <Widget>[
-        CircleAvatar(
-          child: Text('A'),
-          backgroundColor: Colors.yellow,
-        ),
-        CircleAvatar(
-          child: Text('B'),
-          backgroundColor: Colors.red,
-        )
-      ],
-    );
-   Drawer getDrawer(){
-      return Drawer(
-        child: ListView(
-          children: <Widget>[
-            drawerHeader,
-            ListTile(
-              title: Text("Home"),
-              onTap: () => Navigator.of(context).pop(),
-            ),
-            ListTile(
-              title: Text("Register Item"),
-              onTap: () => Navigator.of(context).pushNamed("/itemForm"),
-            ),
-            ListTile(
-              title: Text('Add Stock'),
-              onTap: () => Navigator.of(context).pushNamed("/itemEntryForm"),
-            ),
-          ]
-        )
-      );
-    }
-
-    Form getForm(){
+    Form buildForm(){
       return Form(
         key: _formKey,
         child: Padding(
           padding: EdgeInsets.all(_minimumPadding * 2),
           child: ListView(
             children: <Widget>[
+
+              DropdownButton<String>(
+                items: _forms.map( (String dropDownStringItem) {
+                    return DropdownMenuItem<String>(
+                      value: dropDownStringItem,
+                      child: Text(dropDownStringItem),
+                    ); // DropdownMenuItem
+                }).toList(),
+
+                onChanged: (String newValueSelected){
+                  _dropDownItemSelected(newValueSelected);
+                }, //onChanged
+
+                value: _currentFormSelected,
+              ), // DropdownButton
+
 
               // Item name
               Padding(
@@ -187,7 +177,6 @@ class _SellingFormState extends State<SellingForm>{
                   Expanded(
                     child: RaisedButton(
                       color: Theme.of(context).accentColor,
-                      textColor: Theme.of(context).primaryColorDark,
                       child: Text("Save", textScaleFactor: 1.5),
                       onPressed: () {
                         /*
@@ -214,16 +203,14 @@ class _SellingFormState extends State<SellingForm>{
 
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),// AppBar
+    return CustomScaffold.setScaffold(context, widget.title, buildForm);
+  }
 
-      drawer: getDrawer(),
-
-      body: getForm(),
-     );// Scaffold
-
+  void _dropDownItemSelected(String newValueSelected) {
+    setState( () {
+        this._currentFormSelected = newValueSelected;
+        //this.getForm = this._stringToForm[newValueSelected];
+    }); // setState
   }
 
 }

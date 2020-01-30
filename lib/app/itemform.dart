@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/utils/window.dart';
+import 'package:bk_app/utils/scaffold.dart';
 import 'package:intl/intl.dart';
 
 class ItemForm extends StatefulWidget {
@@ -31,12 +33,14 @@ class _ItemForm extends State<ItemForm>{
 
   @override
   void initState() {
+    if (this.item == null){
+      this.item = Item('');
+    }
     super.initState();
   }
 
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNickNameController = TextEditingController();
-  TextEditingController wholeSellerNameController = TextEditingController();
 
 
   @override
@@ -47,23 +51,8 @@ class _ItemForm extends State<ItemForm>{
     itemNameController.text = item.name;
     itemNickNameController.text = item.nickName;
 
-    return WillPopScope (
-      onWillPop: () {
-        // When user presses the back button write some code to control
-        moveToLastScreen();
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: () {
-              moveToLastScreen();
-            }
-          )
-        ),// AppBar
-
-      body: Form(
+    Widget buildForm(){
+      return Form(
         key: _formKey,
         child: Padding(
           padding: EdgeInsets.all(_minimumPadding * 2),
@@ -71,7 +60,7 @@ class _ItemForm extends State<ItemForm>{
             children: <Widget>[
 
               // Item name
-              genTextField(
+              WindowUtils.genTextField(
                 labelText: "Item name",
                 hintText: "Name of item you sold",
                 textStyle: textStyle,
@@ -80,19 +69,11 @@ class _ItemForm extends State<ItemForm>{
               ),
 
               // Nick name
-              genTextField(
+              WindowUtils.genTextField(
                 labelText: "Nick name (id)",
                 textStyle: textStyle,
                 controller: itemNickNameController,
                 onChanged: updateItemNickName
-              ),
-
-              // Wholeseller name: They are separate entity of their own with properties like name, number, location, etc
-              genTextField(
-                labelText: "Wholeseller name",
-                textStyle: textStyle,
-                controller: wholeSellerNameController,
-                onChanged: updateWholeSellerName
               ),
 
               // TODO
@@ -110,7 +91,6 @@ class _ItemForm extends State<ItemForm>{
                   Expanded(
                     child: RaisedButton(
                       color: Theme.of(context).accentColor,
-                      textColor: Theme.of(context).primaryColorDark,
                       child: Text("Save", textScaleFactor: 1.5),
                       onPressed: () {
                         setState( () {
@@ -127,48 +107,21 @@ class _ItemForm extends State<ItemForm>{
             ), // Padding
 
             ] // Column widget list
-          ) //Column
+          ) //List view
         ) // Padding
-      ) // Container
-    ) // Scaffold
-  );
+      ); // form
+   }
 
-}
+   return WillPopScope (
+     onWillPop: () {
+       // When user presses the back button write some code to control
+       WindowUtils.moveToLastScreen(context);
+     },
+     child: CustomScaffold.setScaffold(
+       context, title, buildForm),
+   );
 
-  void moveToLastScreen() {
-    Navigator.pop(context, true);
-  }
-
-  Widget genTextField({String labelText, String hintText, TextStyle textStyle, TextEditingController controller, TextInputType keyboardType = TextInputType.text, var onChanged} ) {
-    return Padding(
-      padding: EdgeInsets.only(top:_minimumPadding, bottom:_minimumPadding),
-      child: TextFormField(
-        keyboardType: keyboardType,
-        style: textStyle,
-        controller: controller,
-        validator: (String value) {
-          if (value.isEmpty) {
-            return "Please enter $labelText";
-          }
-        },
-        onChanged: (value) {
-          onChanged();
-        },
-        decoration: InputDecoration(
-          labelText: labelText,
-          labelStyle: textStyle,
-          hintText: hintText,
-          errorStyle: TextStyle(
-            color: Colors.yellowAccent,
-            fontSize: 15.0
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5.0)
-          )
-        ),
-      ), // Textfield
-    );
-  } // genTextField function
+ }
 
   // Update the title of the Item obj
   void updateItemName() {
@@ -180,15 +133,9 @@ class _ItemForm extends State<ItemForm>{
     item.nickName = itemNickNameController.text;
   }
 
-  // Update the description of the Item obj
-  void updateWholeSellerName() {
-    debugPrint("wholeseller name changed");
-  }
-
-
   // Save data to database
   void _save() async {
-    moveToLastScreen();
+    WindowUtils.moveToLastScreen(context);
 
     // item.date = DateFormat.yMMMd().format(DateTime.now());
 
@@ -204,19 +151,19 @@ class _ItemForm extends State<ItemForm>{
 
     if (result != 0) {
       // Success
-      _showAlertDialog('Status', 'Item saved successfully');
+      WindowUtils.showAlertDialog(context, 'Status', 'Item saved successfully');
     } else {
       // Failure
-      _showAlertDialog('Status', 'Problem saving item, try again!');
+      WindowUtils.showAlertDialog(context, 'Status', 'Problem saving item, try again!');
     }
   }
 
   // Delete item data
   void _delete() async {
-    moveToLastScreen();
+    WindowUtils.moveToLastScreen(context);
     if (item.id == null) {
       // Case 1: Abandon new item creation
-      _showAlertDialog('Status', 'Item not created');
+      WindowUtils.showAlertDialog(context, 'Status', 'Item not created');
       return;
     }
 
@@ -226,21 +173,11 @@ class _ItemForm extends State<ItemForm>{
 
     if (result != 0) {
       // Success
-      _showAlertDialog('Status', 'Item deleted successfully');
+      WindowUtils.showAlertDialog(context, 'Status', 'Item deleted successfully');
     } else {
       // Failure
-      _showAlertDialog('Status', 'Problem deleting item, try again!');
+      WindowUtils.showAlertDialog(context, 'Status', 'Problem deleting item, try again!');
     }
   }
 
-  void _showAlertDialog(String title, String message) {
-    AlertDialog alertDialog = AlertDialog(
-      title: Text(title),
-      content: Text(message),
-    );
-    showDialog(
-      context: context,
-      builder: (_) => alertDialog,
-    );
-  }
 }

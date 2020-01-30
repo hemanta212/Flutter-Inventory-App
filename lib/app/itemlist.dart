@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/utils/window.dart';
+import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/app/itementryform.dart';
 import 'package:bk_app/app/itemform.dart';
 import 'package:sqflite/sqflite.dart';
@@ -30,10 +32,11 @@ class ItemListState extends State<ItemList> {
       appBar: AppBar(
         title: Text("Items"),
       ),
+      drawer: CustomScaffold.setDrawer(context),
       body: getItemListView(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          navigateToDetail(Item('', 0, 0), 'Create Item');
+          navigateToDetail(Item(''), 'Create Item');
         },
         tooltip: 'Add Item',
         child: Icon(Icons.add),
@@ -48,7 +51,7 @@ class ItemListState extends State<ItemList> {
       itemCount: count,
       itemBuilder: (BuildContext context, int position) {
         return Card(
-            color: Colors.black,
+            color: Colors.white,
             elevation: 2.0,
             child: ListTile(
               leading: CircleAvatar(
@@ -77,19 +80,14 @@ class ItemListState extends State<ItemList> {
   void _delete(BuildContext context, Item item) async {
     int result = await databaseHelper.deleteItem(item.id);
     if (result != 0) {
-      _showSnackBar(context, 'Item successfully deleted');
+      WindowUtils.showSnackBar(context, 'Item successfully deleted');
       updateListView();
     }
   }
 
-  void _showSnackBar(BuildContext context, String message) {
-    final snackBar = SnackBar(content: Text(message));
-    Scaffold.of(context).showSnackBar(snackBar);
-  }
-
   void navigateToDetail(Item item, String name) async {
     bool result = await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return ItemForm(item: item, title:name);
+      return ItemEntryForm(item: item, title:name);
     }));
 
     if (result == true){

@@ -39,7 +39,7 @@ class DbHelper {
   Future<Database> initializeDatabase() async {
     // Get the directory path for both android and ios to store Database
     Directory directory = await getApplicationDocumentsDirectory();
-    String path = directory.path + 'items4.db';
+    String path = directory.path + 'items.db';
 
     // Open/create the db at a given path
     var itemsDatabase = await openDatabase(path, version: 1, onCreate: _createDb);
@@ -73,7 +73,9 @@ class DbHelper {
   // Update Operation: Update a item from database
   Future<int> updateItem(Item item) async {
     Database db = await this.database;
-    var result = await db.update(itemTable, item.toMap(), where: '$colId = ?', whereArgs: [item.id]);
+    var result = await db.update(
+      itemTable, item.toMap(), where: '$colId = ?', whereArgs: [item.id]
+    );
     return result;
   }
 
@@ -89,6 +91,20 @@ class DbHelper {
     Database db = await this.database;
     List<Map<String, dynamic>> x = await db.rawQuery('SELECT COUNT (*) from $itemTable');
     int result = Sqflite.firstIntValue(x);
+    return result;
+  }
+
+  // Get item from item name
+  Future<Item> getItem(String name) async {
+    Database db = await this.database;
+    List<Map<String,dynamic>> mapResult = await db.query(
+      itemTable, where: '$colName = ?', whereArgs: [name]
+    );
+
+    if (mapResult.length == 0){
+      return null;
+    }
+    Item result = Item.fromMapObject(mapResult[0]);
     return result;
   }
 
