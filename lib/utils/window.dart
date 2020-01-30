@@ -77,7 +77,7 @@ class WindowUtils {
       child: RaisedButton(
         color: Theme.of(context).accentColor,
         child: Text(name, textScaleFactor: 1.5),
-        onPressed: onPressed()
+        onPressed: onPressed
       ) // RaisedButton Calculate
     ); //Expanded
   }
