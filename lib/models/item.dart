@@ -70,6 +70,10 @@ class Item {
     this._markedPrice = newMarkedPrice;
   }
 
+  set totalStock(double newTotalStock) {
+    this._totalStock = newTotalStock;
+  }
+
   double addStock(double addedStock){
     this._totalStock += addedStock;
   }

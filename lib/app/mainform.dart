@@ -4,25 +4,34 @@ import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/app/forms.dart';
 import 'package:bk_app/models/item.dart';
 
-class SellingForm extends StatefulWidget {
-  String title;
-  SellingForm({this.title});
+class MainForm extends StatefulWidget {
+  final String title;
+  final String formType;
+  var obj;
+
+  MainForm({this.title, this.formType, this.obj});
 
   @override
-  State<StatefulWidget> createState() => _SellingFormState();
+  State<StatefulWidget> createState() {
+    return _MainFormState(this.title, this.formType, this.obj);
+  }
 
 }
 
-class _SellingFormState extends State<SellingForm>{
+class _MainFormState extends State<MainForm>{
 
   // Variables
+  String title;
+  String _currentFormSelected;
+  var obj;
+
+  _MainFormState(this.title, this._currentFormSelected, this.obj);
+
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
 
-  List<String> _forms = ['Sales form', 'Stock entry form', 'Item entry form'];
+  List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
   var displayResult = '';
-
-  String _currentFormSelected = '';
 
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNumberController = TextEditingController();
@@ -33,7 +42,12 @@ class _SellingFormState extends State<SellingForm>{
   @override
   void initState() {
     super.initState();
-    _currentFormSelected = _forms[0];
+    if (_currentFormSelected == null){
+      _currentFormSelected = _forms[0];
+    }
+    if (obj == null){
+      obj = new Item('');
+    }
   }
 
 
@@ -42,8 +56,7 @@ class _SellingFormState extends State<SellingForm>{
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
     if (getForm == null){
-      var FormClass = new SalesForm(context, Item(''));
-      getForm = FormClass.genForm;
+      _dropDownItemSelected(this._currentFormSelected);
     }
 
     Widget buildBody() {
@@ -76,13 +89,14 @@ class _SellingFormState extends State<SellingForm>{
   void _dropDownItemSelected(String newValueSelected) {
 
     Map _stringToForm = {
-      'Item entry form': ItemForm.empty(context),
-      'Stock entry form': ItemEntryForm.empty(context),
-      'Sales form': SalesForm.empty(context),
+      'Item Entry': ItemForm(context, this.obj),
+      'Stock Entry': ItemEntryForm(context, this.obj),
+      'Sales Entry': SalesForm(context, this.obj),
     };
 
     setState( () {
         this.getForm = _stringToForm[newValueSelected].genForm;
+        this.title = newValueSelected;
         this._currentFormSelected = newValueSelected;
     }); // setState
   }

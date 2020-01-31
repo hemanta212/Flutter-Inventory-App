@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/models/item.dart';
 
 
 class ItemEntryForm{
+
   BuildContext context;
   Item item;
 
@@ -43,6 +45,11 @@ class ItemEntryForm{
               controller: this.itemNameController,
               onChanged: this.updateItemName,
             ),
+
+            Padding(
+              padding: EdgeInsets.all(_minimumPadding),
+              child: Text(this.displayString)
+             ),
 
             // No of items
             WindowUtils.genTextField(
@@ -108,10 +115,8 @@ class ItemEntryForm{
     itemFuture.then( (newItem) {
         this.item = newItem;
         if (this.item == null){
-          this.displayString = "Unregistered item";
           debugPrint('Unregistered Got item as $name');
-        }else {
-          this.displayString = "";
+        } else {
           debugPrint('Registered Got item as $name');
         }
       },
@@ -141,7 +146,9 @@ class ItemEntryForm{
   // Save data to database
   void _save() async {
     if (this.item == null){
-      WindowUtils.showAlertDialog(this.context, "Status:", "Item not registered");
+      WindowUtils.showAlertDialog(
+        this.context, "Status:", "Item not registered"
+      );
       return;
     }
     // Update the cost price
@@ -160,10 +167,15 @@ class ItemEntryForm{
 
     if (result != 0) {
       // Success
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Stock updated successfully');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Stock updated successfully'
+      );
+
     } else {
       // Failure
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Problem updating stock, try again!');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Problem updating stock, try again!'
+      );
     }
   }
 
@@ -171,7 +183,9 @@ class ItemEntryForm{
   void _delete() async {
     if (this.item.id == null) {
       // Case 1: Abandon new item creation
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Item not created');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Item not created'
+      );
       return;
     }
 
@@ -181,10 +195,15 @@ class ItemEntryForm{
 
     if (result != 0) {
       // Success
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Item deleted successfully');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Item deleted successfully'
+      );
+
     } else {
       // Failure
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Problem deleting item, try again!');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Problem deleting item, try again!'
+      );
     }
   }
 }
@@ -242,7 +261,7 @@ class ItemForm{
               ),
 
               // TODO
-              /* Provide user to define Big unit terms like  
+              /* Provide user to define Big unit terms like
               1 box = 15 items
               1 cartoon = 5 box
               */
@@ -256,8 +275,12 @@ class ItemForm{
 
                 child: Row(
                   children: <Widget>[
-                    WindowUtils.genButton(this.context, "Save", this.checkAndSave),
-                    WindowUtils.genButton(this.context, "Delete", this._delete)
+                    WindowUtils.genButton(
+                      this.context, "Save", this.checkAndSave
+                    ),
+                    WindowUtils.genButton(
+                      this.context, "Delete", this._delete
+                    )
                   ]
                 ) // Row
 
@@ -304,10 +327,15 @@ class ItemForm{
 
     if (result != 0) {
       // Success
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Item saved successfully');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Item saved successfully'
+      );
+
     } else {
       // Failure
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Problem saving item, try again!');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Problem saving item, try again!'
+      );
     }
   }
 
@@ -315,7 +343,9 @@ class ItemForm{
   void _delete() async {
     if (this.item.id == null) {
       // Case 1: Abandon new item creation
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Item not created');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Item not created'
+      );
       return;
     }
 
@@ -325,10 +355,15 @@ class ItemForm{
 
     if (result != 0) {
       // Success
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Item deleted successfully');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Item deleted successfully'
+      );
+
     } else {
       // Failure
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Problem deleting item, try again!');
+      WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Problem deleting item, try again!'
+      );
     }
   }
 }
@@ -371,7 +406,7 @@ class SalesForm{
                 hintText: "Name of item you sold",
                 textStyle: textStyle,
                 controller: this.itemNameController,
-                onChanged: this.updateItemName
+                onChanged: updateItemName,
               ),
 
               // No of items
@@ -401,8 +436,12 @@ class SalesForm{
 
                 child: Row(
                   children: <Widget>[
-                    WindowUtils.genButton(this.context, "Save", this.checkAndSave),
-                    WindowUtils.genButton(this.context, "Delete", this._delete)
+                    WindowUtils.genButton(
+                      this.context, "Save", this.checkAndSave
+                    ),
+                    WindowUtils.genButton(
+                      this.context, "Delete", this._delete
+                    )
                   ]
                 ) // Row
 
@@ -421,7 +460,7 @@ class SalesForm{
         this.item = newItem;
         if (this.item == null){
           this.displayString = "Unregistered item";
-          debugPrint('Unregistered Got item as $name');
+          return this.displayString;
         }else {
           this.displayString = "";
           debugPrint('Registered Got item as $name');
@@ -448,6 +487,5 @@ class SalesForm{
     debugPrint('delete pressed');
   }
 
- 
 
 }

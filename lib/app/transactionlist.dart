@@ -1,49 +1,50 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:bk_app/app/mainform.dart';
-import 'package:bk_app/models/item.dart';
+import 'package:bk_app/models/transaction.dart';
+import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:sqflite/sqflite.dart';
 
 
-class ItemList extends StatefulWidget {
+class TransactionList extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-    return ItemListState();
+    return TransactionListState();
   }
 }
 
-class ItemListState extends State<ItemList> {
+class TransactionListState extends State<TransactionList> {
   DbHelper databaseHelper = DbHelper();
-  List<Item> itemList;
+  List<ItemTransaction> transactionList;
   int count = 0;
 
   @override
   Widget build(BuildContext context) {
-    if (itemList == null) {
-      itemList = List<Item>();
+    if (transactionList == null) {
+      transactionList = List<ItemTransaction>();
       updateListView();
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Items"),
+        title: Text("Transactions"),
       ),
       drawer: CustomScaffold.setDrawer(context),
-      body: getItemListView(),
+      body: getTransactionListView(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          navigateToDetail(Item(''), 'Create Item');
+          navigateToDetail(ItemTransaction(0, 0, 0.0, 0.0, ''), 'Create Transaction');
         },
-        tooltip: 'Add Item',
+        tooltip: 'Add Transaction',
         child: Icon(Icons.add),
       ),
     );
   }
 
-  ListView getItemListView() {
+  ListView getTransactionListView() {
     TextStyle nameStyle = Theme.of(context).textTheme.subhead;
 
     return ListView.builder(
@@ -57,36 +58,27 @@ class ItemListState extends State<ItemList> {
                 backgroundColor: Colors.red,
                 child: Icon(Icons.keyboard_arrow_right),
               ),
-              title: Text(this.itemList[position].name, style: nameStyle),
-              subtitle: Text(this.itemList[position].nickName),
-
-              /*
-              trailing: GestureDetector(
-                child: Icon(Icons.delete, color: Colors.grey),
-                onTap: () {
-                  _delete(context, itemList[position]);
-                },
-              ),*/
-
+              title: Text(this.transactionList[position].date, style: nameStyle),
+              subtitle: Text(this.transactionList[position].date),
               onTap: () {
-                navigateToDetail(this.itemList[position], 'Edit Item');
+                navigateToDetail(this.transactionList[position], 'Edit Transaction');
               },
             ));
       },
     );
   }
 
-  void _delete(BuildContext context, Item item) async {
-    int result = await databaseHelper.deleteItem(item.id);
+  void _delete(BuildContext context, ItemTransaction transaction) async {
+    int result = await databaseHelper.deleteItemTransaction(transaction.id);
     if (result != 0) {
-      WindowUtils.showSnackBar(context, 'Item successfully deleted');
+      WindowUtils.showSnackBar(context, 'Transaction successfully deleted');
       updateListView();
     }
   }
 
-  void navigateToDetail(Item item, String name) async {
+  void navigateToDetail(ItemTransaction transaction, String name) async {
     bool result = await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return MainForm(title:name, formType: 'Item entry form', obj: item);
+      return MainForm(title:name, formType: 'Sales entry form', obj: transaction);
     }));
 
     if (result == true){
@@ -98,11 +90,11 @@ class ItemListState extends State<ItemList> {
     final Future<Database> dbFuture = databaseHelper.initializeDatabase();
     dbFuture.then( (database) {
 
-      Future<List<Item>> itemListFuture = databaseHelper.getItemList();
-      itemListFuture.then( (itemList) {
+      Future<List<ItemTransaction>> transactionListFuture = databaseHelper.getItemTransactionList();
+      transactionListFuture.then( (transactionList) {
         setState( () {
-          this.itemList = itemList;
-          this.count = itemList.length;
+          this.transactionList = transactionList;
+          this.count = transactionList.length;
         });
       });
     });

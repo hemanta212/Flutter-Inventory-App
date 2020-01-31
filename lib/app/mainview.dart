@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:bk_app/app/sellingform.dart';
-import 'package:bk_app/app/itemform.dart';
-import 'package:bk_app/app/itementryform.dart';
+import 'package:bk_app/app/mainform.dart';
 import 'package:bk_app/app/itemlist.dart';
+import 'package:bk_app/app/transactionlist.dart';
 
 class MainView extends StatelessWidget {
   @override
@@ -11,19 +10,13 @@ class MainView extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Bookkeeping app',
       theme: ThemeData(
-        //brightness: Brightness.dark,
-        //primaryColor: Colors.indigo,
-        //accentColor: Colors.indigoAccent,
         primarySwatch: Colors.deepPurple,
       ), // ThemeData
       routes: <String, WidgetBuilder>{
-        "/spForm": (BuildContext context) => SellingForm(title: "Register Sales"),
-        "/itemForm": (BuildContext context) => ItemForm(title: "Register Item"),
-        "/itemEntryForm": (BuildContext context) => ItemEntryForm(title: "Stock Entry"),
-
+        "/mainForm": (BuildContext context) => MainForm(title: "Sales Entry"),
         "/itemList": (BuildContext context) => ItemList(),
       },
-      home: SellingForm(title: "Sales Entry"),
+      home: MainForm(title: "Sales Entry"),
     );
 
   }

@@ -29,6 +29,11 @@ class WindowUtils {
     );
   }
 
+  static String formValidator(String value, String labelText){
+    if (value.isEmpty) {
+      return "Please enter $labelText";
+    }
+  }
 
   static Widget genTextField({
      String labelText,
@@ -36,8 +41,8 @@ class WindowUtils {
      TextStyle textStyle,
      TextEditingController controller,
      TextInputType keyboardType = TextInputType.text,
-     var onChanged
-
+     var onChanged,
+     var validator = formValidator
   }) {
 
     final double _minimumPadding = 5.0;
@@ -49,9 +54,7 @@ class WindowUtils {
         style: textStyle,
         controller: controller,
         validator: (String value) {
-          if (value.isEmpty) {
-            return "Please enter $labelText";
-          }
+          return validator(value, labelText);
         },
         onChanged: (value) {
           onChanged();

@@ -8,15 +8,7 @@ class CustomScaffold{
           children: <Widget>[
             ListTile(
               title: Text("Home"),
-              onTap: () => Navigator.of(context).pop(),
-            ),
-            ListTile(
-              title: Text("Register Item"),
-              onTap: () => Navigator.of(context).pushNamed("/itemForm"),
-            ),
-            ListTile(
-              title: Text('Add Stock'),
-              onTap: () => Navigator.of(context).pushNamed("/itemEntryForm"),
+              onTap: () => Navigator.of(context).pushNamed("/mainForm"),
             ),
             ListTile(
               title: Text('Items'),
