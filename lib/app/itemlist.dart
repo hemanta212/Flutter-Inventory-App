@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:bk_app/app/mainform.dart';
+import 'package:bk_app/app/itementryform.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/utils/dbhelper.dart';
-import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:sqflite/sqflite.dart';
-
 
 class ItemList extends StatefulWidget {
   @override
@@ -58,7 +56,7 @@ class ItemListState extends State<ItemList> {
                 child: Icon(Icons.keyboard_arrow_right),
               ),
               title: Text(this.itemList[position].name, style: nameStyle),
-              subtitle: Text(this.itemList[position].nickName),
+              subtitle: Text(this.itemList[position].nickName ?? ''),
 
               /*
               trailing: GestureDetector(
@@ -76,31 +74,23 @@ class ItemListState extends State<ItemList> {
     );
   }
 
-  void _delete(BuildContext context, Item item) async {
-    int result = await databaseHelper.deleteItem(item.id);
-    if (result != 0) {
-      WindowUtils.showSnackBar(context, 'Item successfully deleted');
-      updateListView();
-    }
-  }
-
   void navigateToDetail(Item item, String name) async {
-    bool result = await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return MainForm(title:name, formType: 'Item entry form', obj: item);
+    bool result =
+        await Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return ItemEntryForm(title: name, item: item, forEdit: true);
     }));
 
-    if (result == true){
+    if (result == true) {
       updateListView();
     }
   }
 
   void updateListView() {
     final Future<Database> dbFuture = databaseHelper.initializeDatabase();
-    dbFuture.then( (database) {
-
+    dbFuture.then((database) {
       Future<List<Item>> itemListFuture = databaseHelper.getItemList();
-      itemListFuture.then( (itemList) {
-        setState( () {
+      itemListFuture.then((itemList) {
+        setState(() {
           this.itemList = itemList;
           this.count = itemList.length;
         });

@@ -14,6 +14,10 @@ class CustomScaffold{
               title: Text('Items'),
               onTap: () => Navigator.of(context).pushNamed("/itemList"),
             ),
+            ListTile(
+              title: Text('Transactions'),
+              onTap: () => Navigator.of(context).pushNamed("/transactionList"),
+            ),
           ]
         )
       );

@@ -1,235 +1,303 @@
 import 'package:flutter/material.dart';
+import 'package:bk_app/models/item.dart';
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
-import 'package:bk_app/models/item.dart';
+import 'package:bk_app/utils/form.dart';
+import 'package:bk_app/app/stockentryform.dart';
+import 'package:bk_app/app/salesentryform.dart';
 
 class ItemEntryForm extends StatefulWidget {
-  String title;
+  final String title;
   final Item item;
+  final bool forEdit;
 
-  ItemEntryForm({this.item, this.title});
+  ItemEntryForm({this.item, this.title, this.forEdit});
 
   @override
-  State<StatefulWidget> createState(){
-    return _ItemEntryForm(this.item, this.title);
+  State<StatefulWidget> createState() {
+    return _ItemEntryFormState(this.item, this.title);
   }
 }
 
-
-class _ItemEntryForm extends State<ItemEntryForm>{
-
+class _ItemEntryFormState extends State<ItemEntryForm> {
   // Variables
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
-
   DbHelper databaseHelper = DbHelper();
 
   String title;
   Item item;
 
-  String displayString = '';
+  _ItemEntryFormState(this.item, this.title);
 
-  _ItemEntryForm(this.item, this.title);
+  List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
+  String stringUnderName = '';
+  String stringUnderNickName = '';
+  String _currentFormSelected;
+
+  TextEditingController itemNameController = TextEditingController();
+  TextEditingController itemNickNameController = TextEditingController();
+  TextEditingController markedPriceController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    this._currentFormSelected = _forms[2];
+    _initiateItemData();
   }
 
-  TextEditingController itemNameController = TextEditingController();
-  TextEditingController itemNumberController = TextEditingController();
-  TextEditingController costPriceController = TextEditingController();
-  TextEditingController markedPriceController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context){
-
-    TextStyle textStyle = Theme.of(context).textTheme.title;
-
-    // Fill values in text field for updating.
-    if (item != null){
-      debugPrint("text refill called");
-      itemNameController.text = item.name;
-      itemNumberController.text = '${item.totalStock}';
-      costPriceController.text = '${item.costPrice}';
-      markedPriceController.text = '${item.markedPrice}';
+  void _initiateItemData() {
+    if (this.item == null) {
+      this.item = Item('');
     }
 
-    Widget buildForm() {
-      return Form(
-        key: _formKey,
-        child: Padding(
-          padding: EdgeInsets.all(_minimumPadding * 2),
-          child: ListView(
-            children: <Widget>[
-
-              // Item name
-              WindowUtils.genTextField(
-                labelText: "Item name",
-                hintText: "Name of item you sold",
-                textStyle: textStyle,
-                controller: itemNameController,
-                onChanged: updateItemName,
-              ),
-
-              // No of items
-              WindowUtils.genTextField(
-                labelText: "No of items",
-                textStyle: textStyle,
-                controller: itemNumberController,
-                keyboardType: TextInputType.number,
-                onChanged: () {},
-              ),
-
-              // TODO
-              /* Provide user to register using  Big unit terms like
-              1 box = 15 items
-              1 cartoon = 5 box
-              */
-
-              // Cost price
-              WindowUtils.genTextField(
-                labelText: "Total cost price",
-                textStyle: textStyle,
-                controller: costPriceController,
-                keyboardType: TextInputType.number,
-                onChanged: updateCostPrice,
-              ),
-
-              // Marked price
-              WindowUtils.genTextField(
-                labelText: "Expected selling price",
-                textStyle: textStyle,
-                controller: markedPriceController,
-                keyboardType: TextInputType.number,
-                onChanged: updateMarkedPrice,
-              ),
-
-            // save
-            Padding(
-              padding: EdgeInsets.only(bottom: _minimumPadding, top:_minimumPadding),
-              child: Row(
-                children: <Widget>[
-
-                  Expanded(
-                    child: RaisedButton(
-                      color: Theme.of(context).accentColor,
-                      child: Text("Save", textScaleFactor: 1.5),
-                      onPressed: () {
-                        setState( () {
-                          debugPrint("Save button clicked");
-                          if (_formKey.currentState.validate()) {
-                            _save();
-                          }
-                        });
-                      }
-                    ) // RaisedButton Calculate
-                  ), //Expanded
-
-                ]
-
-              ) // Row 2 Submit and reset buttons
-            ), // Padding
-
-            ] // Column widget list
-          ) //Column
-        ) // Padding
-      ); // Container
+    if (this.item.id != null) {
+      this.itemNameController.text = '${item.name}';
+      this.itemNickNameController.text = '${item.nickName ?? ''}';
+      this.markedPriceController.text =
+          FormUtils.fmtToIntIfPossible(this.item.markedPrice);
+    }
   }
 
-  return CustomScaffold.setScaffold(context, this.title, buildForm);
-}
+  Widget buildForm() {
+    TextStyle textStyle = Theme.of(context).textTheme.title;
 
-  void onSave() {
-    setState( () {
-      debugPrint("Save button clicked");
-      if (_formKey.currentState.validate()) {
-        debugPrint("validated");
-        _save();
-      }
-    });
+    return Column(children: <Widget>[
+      DropdownButton<String>(
+        items: _forms.map((String dropDownStringItem) {
+          return DropdownMenuItem<String>(
+            value: dropDownStringItem,
+            child: Text(dropDownStringItem),
+          ); // DropdownMenuItem
+        }).toList(),
+
+        onChanged: (String newValueSelected) {
+          _dropDownItemSelected(newValueSelected);
+        }, //onChanged
+
+        value: _currentFormSelected,
+      ), // DropdownButton
+
+      Expanded(
+          child: Form(
+              key: this._formKey,
+              child: Padding(
+                  padding: EdgeInsets.all(_minimumPadding * 2),
+                  child: ListView(children: <Widget>[
+                    // Item name
+                    WindowUtils.genTextField(
+                        labelText: "Item name",
+                        hintText: "Name of item you sold",
+                        textStyle: textStyle,
+                        controller: this.itemNameController,
+                        onChanged: () {
+                          return setState(() {
+                            this.updateItemName();
+                          });
+                        }),
+
+                    Visibility(
+                        visible: stringUnderName.isEmpty ? false : true,
+                        child: Padding(
+                          padding: EdgeInsets.all(_minimumPadding),
+                          child: Text(this.stringUnderName),
+                        )),
+
+                    // Nick name
+                    WindowUtils.genTextField(
+                        labelText: "Nick name (id)",
+                        textStyle: textStyle,
+                        controller: this.itemNickNameController,
+                        onChanged: () {
+                          return setState(() {
+                            this.updateItemName();
+                          });
+                        },
+                        validator: (value, labelText) {}),
+
+                    Visibility(
+                        visible: stringUnderNickName.isEmpty ? false : true,
+                        child: Padding(
+                          padding: EdgeInsets.all(_minimumPadding),
+                          child: Text(this.stringUnderNickName),
+                        )),
+
+                    // Marked Price of item
+                    Visibility(
+                        visible: this.item.markedPrice?.isFinite ??
+                            false, // defaults to false if MP is null
+                        child: WindowUtils.genTextField(
+                          labelText: "Marked price",
+                          hintText: "Expected selling price",
+                          textStyle: textStyle,
+                          controller: this.markedPriceController,
+                          keyboardType: TextInputType.number,
+                          onChanged: this.updateMarkedPrice,
+                        )),
+
+                    // TODO
+                    /* Provide user to define Big unit terms like
+                      1 box = 15 items
+                      1 cartoon = 5 box
+                    */
+
+                    // save
+                    Padding(
+                        padding: EdgeInsets.only(
+                            bottom: _minimumPadding, top: _minimumPadding),
+                        child: Row(children: <Widget>[
+                          WindowUtils.genButton(
+                              this.context, "Save", this.checkAndSave),
+                          WindowUtils.genButton(
+                              this.context, "Delete", this._delete)
+                        ]) // Row
+
+                        ), // Padding
+                  ] // Column widget list
+                      ) //List view
+                  ) // Padding
+              ))
+    ]); // form
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () {
+        // When user presses the back button write some code to control
+        WindowUtils.moveToLastScreen(context);
+      },
+      child: CustomScaffold.setScaffold(context, title, buildForm),
+    );
+  }
+
+  // Update the title of the Item obj
   void updateItemName() {
-    var name = itemNameController.text;
-    Future<Item> itemFuture = databaseHelper.getItem(name);
-    itemFuture.then( (newItem) {
-      item = newItem;
-      if (item == null){
-        this.displayString = "Unregistered item";
-        debugPrint('Unregistered Got item as $name');
-      }else {
-        this.displayString = "";
-        debugPrint('Registered Got item as $name');
+    String givenName = this.itemNameController.text;
+    Future<Item> duplicate = this.databaseHelper.getItem("name", givenName);
+    duplicate.then((value) {
+      // Don't show the error while updating the item.
+      if (value != null && this.item.id != value.id) {
+        this.stringUnderName = 'Name already registered';
+        this.item.name = '';
+      } else {
+        this.stringUnderName = '';
+        this.item.name = givenName;
       }
-    },
-    onError: (e){
-      debugPrint('UpdateitemName Error::  $e');
     });
   }
 
-  void updateCostPrice(){
-    var a = item.id;
-    debugPrint('ITem id $a');
-    item.costPrice = double.parse(costPriceController.text);
+  void updateMarkedPrice() {
+    this.item.markedPrice = double.parse(this.markedPriceController.text);
   }
 
-  void updateMarkedPrice(){
-    item.markedPrice = double.parse(markedPriceController.text);
+  void updateItemNickName() {
+    String givenNickName = this.itemNickNameController.text;
+    Future<Item> duplicate =
+        this.databaseHelper.getItem('nick_name', givenNickName);
+    duplicate.then((value) {
+      // Don't show the error while updating the item.
+      if (value != null && this.item.id != value.id) {
+        this.stringUnderNickName = 'Nick name already registered';
+      } else {
+        this.stringUnderNickName = '';
+        this.item.nickName = givenNickName;
+      }
+    });
   }
 
+  void clearTextFields() {
+    this.itemNameController.text = '';
+    this.itemNickNameController.text = '';
+    this.markedPriceController.text = '';
+  }
+
+  void checkAndSave() {
+    if (this._formKey.currentState.validate()) {
+      this._save();
+    }
+  }
 
   // Save data to database
   void _save() async {
-    if (item == null){
-      WindowUtils.showAlertDialog(context, "Status:", "Item not registered");
+    int result;
+    String message;
+
+    if (this.item.name == '' || this.stringUnderNickName != '') {
+      // item name is set to '' if its duplicate in above function updateIteName
+      message = "Name or Nick name already registered";
+      WindowUtils.showAlertDialog(this.context, 'Failed!', message);
       return;
     }
-    // Update the cost price
-    double itemNumber = double.parse(itemNumberController.text);
-    item.addStock(itemNumber);
 
-    int result;
-    if (item.id != null) {
-      // Case 1: Update operation
-      debugPrint("Updated item");
-      result = await databaseHelper.updateItem(item);
-    } else {
-      // Case 2: Insert operation
-      result = await databaseHelper.insertItem(item);
+    try {
+      if (this.item.id != null) {
+        // Case 1: Update operation
+        debugPrint("Updated item");
+        result = await this.databaseHelper.updateItem(this.item);
+      } else {
+        // Case 2: Insert operation
+        result = await this.databaseHelper.insertItem(this.item);
+      }
+    } catch (e) {
+      message = 'Problem saving item, try again!';
     }
 
-    if (result != 0) {
+    if (message == null && result != 0) {
+      if (widget.forEdit ?? false) {
+        WindowUtils.moveToLastScreen(context);
+      }
+
       // Success
-      WindowUtils.showAlertDialog(context, 'Status', 'Stock updated successfully');
-    } else {
-      // Failure
-      WindowUtils.showAlertDialog(context, 'Status', 'Problem updating stock, try again!');
+      this.clearTextFields();
+      message = 'Item saved successfully';
     }
+
+    WindowUtils.showAlertDialog(this.context, 'Status', message);
   }
 
   // Delete item data
   void _delete() async {
-    WindowUtils.moveToLastScreen(context);
-    if (item.id == null) {
+    if (widget.forEdit ?? false) {
+      WindowUtils.moveToLastScreen(context);
+    }
+
+    this.clearTextFields();
+
+    if (this.item.id == null) {
       // Case 1: Abandon new item creation
-      WindowUtils.showAlertDialog(context, 'Status', 'Item not created');
+      WindowUtils.showAlertDialog(this.context, 'Status', 'Item not created');
       return;
     }
 
     // Case 2: Delete item from database
-    int result = await databaseHelper.deleteItem(item.id);
-
+    int result = await this.databaseHelper.deleteItem(this.item.id);
 
     if (result != 0) {
       // Success
-      WindowUtils.showAlertDialog(context, 'Status', 'Item deleted successfully');
+      WindowUtils.showAlertDialog(
+          this.context, 'Status', 'Item deleted successfully');
     } else {
       // Failure
-      WindowUtils.showAlertDialog(context, 'Status', 'Problem deleting item, try again!');
+      WindowUtils.showAlertDialog(
+          this.context, 'Status', 'Problem deleting item, try again!');
     }
   }
 
-}
+  void _dropDownItemSelected(String title) async {
+    Map _stringToForm = {
+      'Stock Entry': StockEntryForm(title: title),
+      'Sales Entry': SalesEntryForm(title: title),
+    };
 
+    if (title == 'Item Entry') {
+      return;
+    }
+
+    var getForm = _stringToForm[title];
+    await Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return getForm;
+    }));
+  }
+}

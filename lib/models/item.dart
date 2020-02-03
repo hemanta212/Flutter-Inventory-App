@@ -1,35 +1,33 @@
 class Item {
-
   int _id;
   String _name;
-  String _nickName;
+  String _nickName = '';
   String _description;
   double _costPrice;
   double _markedPrice;
   double _totalStock = 0.0;
+  int _inTransaction;
+  int _outTransaction;
 
-  Item(
-    this._name,
-    [this._nickName,
+  Item(this._name,
+      [this._nickName,
       this._costPrice,
       this._markedPrice,
       this._description,
-      this._totalStock
+      this._totalStock,
+      this._inTransaction,
+      this._outTransaction
       // NOTE : various item custom units
-    ]
-  );
+      ]);
 
-  Item.withId(
-    this._id,
-    this._name,
-    [
-      this._nickName,
+  Item.withId(this._id, this._name,
+      [this._nickName,
       this._costPrice,
       this._markedPrice,
       this._description,
-      this._totalStock
-   ]
-  );
+      this._totalStock,
+      this._inTransaction,
+      this._outTransaction]);
 
   int get id => _id;
 
@@ -45,6 +43,9 @@ class Item {
 
   double get totalStock => _totalStock;
 
+  int get inTransaction => _inTransaction;
+
+  int get outTransaction => _outTransaction;
 
   set name(String newName) {
     if (newName.length <= 140) {
@@ -74,16 +75,27 @@ class Item {
     this._totalStock = newTotalStock;
   }
 
-  double addStock(double addedStock){
+  set inTransaction(int newId) {
+    this._inTransaction = newId;
+  }
+
+  set outTransaction(int newId) {
+    this._outTransaction = newId;
+  }
+
+  void addStock(double addedStock) {
     this._totalStock += addedStock;
+  }
+
+  void decreaseStock(double soldStock) {
+    this._totalStock -= soldStock;
   }
 
   // Convert a note obj to map obj
   Map<String, dynamic> toMap() {
-
     var map = Map<String, dynamic>();
 
-    if (id != null){
+    if (id != null) {
       map['id'] = _id;
     }
 
@@ -92,6 +104,8 @@ class Item {
     map['description'] = _description;
     map['cost_price'] = _costPrice;
     map['marked_price'] = _markedPrice;
+    map['in_transaction'] = _inTransaction;
+    map['out_transaction'] = _outTransaction;
     return map;
   }
 
@@ -103,6 +117,7 @@ class Item {
     this._nickName = map['nick_name'];
     this._costPrice = map['cost_price'];
     this._markedPrice = map['marked_price'];
+    this._inTransaction = map['in_transaction'];
+    this._outTransaction = map['out_transaction'];
   }
-
 }

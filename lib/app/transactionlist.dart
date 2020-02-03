@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:bk_app/app/mainform.dart';
-import 'package:bk_app/models/transaction.dart';
+import 'package:bk_app/app/salesentryform.dart';
+import 'package:bk_app/app/stockentryform.dart';
 import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/utils/dbhelper.dart';
-import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:sqflite/sqflite.dart';
-
 
 class TransactionList extends StatefulWidget {
   @override
@@ -34,13 +32,6 @@ class TransactionListState extends State<TransactionList> {
       ),
       drawer: CustomScaffold.setDrawer(context),
       body: getTransactionListView(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          navigateToDetail(ItemTransaction(0, 0, 0.0, 0.0, ''), 'Create Transaction');
-        },
-        tooltip: 'Add Transaction',
-        child: Icon(Icons.add),
-      ),
     );
   }
 
@@ -58,41 +49,45 @@ class TransactionListState extends State<TransactionList> {
                 backgroundColor: Colors.red,
                 child: Icon(Icons.keyboard_arrow_right),
               ),
-              title: Text(this.transactionList[position].date, style: nameStyle),
+              title: Text(this.transactionList[position].description,
+                  style: nameStyle),
               subtitle: Text(this.transactionList[position].date),
               onTap: () {
-                navigateToDetail(this.transactionList[position], 'Edit Transaction');
+                navigateToDetail(
+                    this.transactionList[position], 'Edit Transaction');
               },
             ));
       },
     );
   }
 
-  void _delete(BuildContext context, ItemTransaction transaction) async {
-    int result = await databaseHelper.deleteItemTransaction(transaction.id);
-    if (result != 0) {
-      WindowUtils.showSnackBar(context, 'Transaction successfully deleted');
-      updateListView();
-    }
-  }
-
   void navigateToDetail(ItemTransaction transaction, String name) async {
-    bool result = await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return MainForm(title:name, formType: 'Sales entry form', obj: transaction);
+    var form;
+    if (transaction.type == 0) {
+      form =
+          SalesEntryForm(title: name, transaction: transaction, forEdit: true);
+    } else {
+      form =
+          StockEntryForm(title: name, transaction: transaction, forEdit: true);
+    }
+
+    bool result =
+        await Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return form;
     }));
 
-    if (result == true){
+    if (result == true) {
       updateListView();
     }
   }
 
   void updateListView() {
     final Future<Database> dbFuture = databaseHelper.initializeDatabase();
-    dbFuture.then( (database) {
-
-      Future<List<ItemTransaction>> transactionListFuture = databaseHelper.getItemTransactionList();
-      transactionListFuture.then( (transactionList) {
-        setState( () {
+    dbFuture.then((database) {
+      Future<List<ItemTransaction>> transactionListFuture =
+          databaseHelper.getItemTransactionList();
+      transactionListFuture.then((transactionList) {
+        setState(() {
           this.transactionList = transactionList;
           this.count = transactionList.length;
         });

@@ -1,8 +1,4 @@
-import 'package:bk_app/models/item.dart';
-
-
-class ItemTransaction{
-
+class ItemTransaction {
   int _id;
   int _itemId;
   int _type;
@@ -12,23 +8,12 @@ class ItemTransaction{
   String _description;
 
   ItemTransaction(
-    this._type,
-    this._itemId,
-    this._amount,
-    this._items,
-    this._date,
-    [this._description]
-  );
+      this._type, this._itemId, this._amount, this._items, this._date,
+      [this._description]);
 
   ItemTransaction.withId(
-    this._id,
-    this._type,
-    this._itemId,
-    this._amount,
-    this._items,
-    this._date,
-    [this._description]
-  );
+      this._id, this._type, this._itemId, this._amount, this._items, this._date,
+      [this._description]);
 
   int get id => _id;
 
@@ -44,15 +29,13 @@ class ItemTransaction{
 
   double get items => _items;
 
-
   set itemId(int newItemId) {
-      this._itemId = newItemId;
-    }
-
-  set itemType(int newType) {
-    this._type = newType;
+    this._itemId = newItemId;
   }
 
+  set type(int newType) {
+    this._type = newType;
+  }
 
   set description(String newDesc) {
     this._description = newDesc;
@@ -70,34 +53,11 @@ class ItemTransaction{
     this._items = newItems;
   }
 
-  /*
-  Item getItem() async {
-    Item item = await databaseHelper.getItemFromId(this.itemId);
-    return item;
-  }
-
-  Item updateItems(double newStock){
-     Item item = self.getItem();
-     double origStock = item.totalStock;
-
-     if (this._type == 0){
-       newStock = origStock + this.items - newStock;
-     }else {
-       newStock = origStock - this.items + newStock;
-     }
-
-     item.totalStock = newStock;
-     return item;
-  }
-    */
-
-
   // Convert a note obj to map obj
   Map<String, dynamic> toMap() {
-
     var map = Map<String, dynamic>();
 
-    if (id != null){
+    if (id != null) {
       map['id'] = _id;
     }
 
@@ -117,8 +77,7 @@ class ItemTransaction{
     this._description = map['description'];
     this._itemId = map['item_id'];
     this._date = map['date'];
-    this._amount = map['cost_price'];
+    this._amount = map['amount'];
     this._items = map['items'];
   }
-
 }
