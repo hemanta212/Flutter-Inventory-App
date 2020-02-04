@@ -40,7 +40,7 @@ class CustomScaffold{
       return Scaffold(
         appBar: appBar(title),
         drawer: setDrawer(context),
-        body: getBody(),
+        body: getBody(context),
       );// Scaffold
     }
 

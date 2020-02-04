@@ -74,7 +74,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
     }
   }
 
-  Widget buildForm() {
+  Widget buildForm(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
     return Column(children: <Widget>[
@@ -155,10 +155,13 @@ class _StockEntryFormState extends State<StockEntryForm> {
                     // save
                     Padding(
                         padding: EdgeInsets.only(
-                            bottom: _minimumPadding, top: _minimumPadding),
+                            bottom: 3 * _minimumPadding, top: 3 * _minimumPadding),
                         child: Row(children: <Widget>[
                           WindowUtils.genButton(
                               this.context, "Save", this.checkAndSave),
+                          Container(
+                            width: 5.0,
+                          ),
                           WindowUtils.genButton(
                               this.context, "Delete", this._delete)
                         ]) // Row
@@ -192,7 +195,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
   }
 
   void updateCostPrice() {
-    this.transaction.amount = double.parse(this.costPriceController.text);
+    this.transaction.amount = double.parse(this.costPriceController.text).abs();
   }
 
   void clearTextFields() {
@@ -217,7 +220,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
       return;
     }
 
-    double items = double.parse(this.itemNumberController.text);
+    double items = double.parse(this.itemNumberController.text).abs();
 
     this.transaction.itemId = item.id;
     this.transaction.date = DateFormat.yMMMd().add_Hms().format(DateTime.now());
@@ -225,9 +228,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.transaction.description =
         'Amount: ${this.transaction.amount}\n Added: ${item.name}';
 
-    item.markedPrice = double.parse(this.markedPriceController.text);
-    item.addStock(items);
-    item.inTransaction = this.transaction.id;
+    item.markedPrice = double.parse(this.markedPriceController.text).abs();
+    item.increaseStock(items);
 
     int result;
     List<int> results = [];

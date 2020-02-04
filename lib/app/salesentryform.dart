@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
@@ -71,7 +72,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     }
   }
 
-  Widget buildForm() {
+  Widget buildForm(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
     return Column(children: <Widget>[
@@ -135,12 +136,15 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                     // save
                     Padding(
                         padding: EdgeInsets.only(
-                            bottom: _minimumPadding, top: _minimumPadding),
+                            bottom: _minimumPadding * 3, top: 3 * _minimumPadding),
                         child: Row(children: <Widget>[
                           WindowUtils.genButton(
-                              this.context, "Save", this.checkAndSave),
+                              context, "Save", this.checkAndSave),
+                          Container(
+                            width: _minimumPadding,
+                          ),
                           WindowUtils.genButton(
-                              this.context, "Delete", this._delete)
+                              context, "Delete", this._delete)
                         ]) // Row
 
                         ), // Paddin
@@ -156,7 +160,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   }
 
   void updateSellingPrice() {
-    this.transaction.amount = double.parse(this.sellingPriceController.text);
+    this.transaction.amount = double.parse(this.sellingPriceController.text).abs();
   }
 
   void updateItemName() {
@@ -194,76 +198,133 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     Item item = await this.databaseHelper.getItem("id", this.tempItemId);
     if (item == null) {
       WindowUtils.showAlertDialog(
-          this.context, "Failed!", "Item not registered");
+          context, "Failed!", "Item not registered");
       return;
     }
 
-    double items = double.parse(this.itemNumberController.text);
-
+    double items = double.parse(this.itemNumberController.text).abs();
     this.transaction.itemId = item.id;
     this.transaction.date = DateFormat.yMMMd().add_Hms().format(DateTime.now());
     this.transaction.items = items;
     this.transaction.description =
         'Amount: ${this.transaction.amount}\n Sold: ${item.name}';
-
     item.decreaseStock(items);
-    item.outTransaction = this.transaction.id;
 
-    int result;
-    List<int> results = [];
-    if (this.transaction.id != null) {
-      // Case 1: Update operation
-      debugPrint("Updated item");
-      result =
-          await this.databaseHelper.updateItemTransaction(this.transaction);
-    } else {
-      // Case 2: Insert operation
-      result =
-          await this.databaseHelper.insertItemTransaction(this.transaction);
-    }
-
-    var result2 = await this.databaseHelper.updateItem(item);
-    results = [result, result2];
-
-    if (results.contains(0)) {
-      // Failure
-      WindowUtils.showAlertDialog(
-          this.context, 'Failed!', 'Problem updating stock, try again!');
-    } else {
-      if (widget.forEdit ?? false) {
-        WindowUtils.moveToLastScreen(context);
-      }
-      this.clearTextFields();
-      // Success
-      WindowUtils.showAlertDialog(
-          this.context, 'Status', 'Stock updated successfully');
-    }
+    _saveTransactionAndUpdateItem(transaction, item);
   }
 
   // Delete item data
   void _delete() async {
-    if (widget.forEdit ?? false) {
-      WindowUtils.moveToLastScreen(context);
-    }
 
-    this.clearTextFields();
     if (this.transaction.id == null) {
       // Case 1: Abandon new item creation
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Item not created');
+      this.clearTextFields();
+      WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
+    }else{
+      // Case 2: Delete item from database after user confirms again
+      WindowUtils.showAlertDialog(
+        context,
+        "Delete?",
+        '''Deleting a transaction may delete important information
+        It cannot be undone. Delete?''',
+        onPressed: _deleteTransactionAndUpdateItem,
+      );
     }
-    // Case 2: Delete item from database
-    int result =
-        await this.databaseHelper.deleteItemTransaction(this.transaction.id);
+  }
 
-    if (result != 0) {
+  void _saveTransactionAndUpdateItem(ItemTransaction transaction, Item item) async {
+    var success;
+    Database db = await this.databaseHelper.database;
+
+    try {
+      var batch = db.batch();
+      batch.update(
+        'item_table', item.toMap(), where: 'id = ?', whereArgs: [item.id]
+      );
+      if (transaction.id == null){
+        batch.insert('transaction_table', transaction.toMap());
+      } else {
+        batch.update(
+          'transaction_table',
+          transaction.toMap(),
+          where: 'id = ?',
+          whereArgs: [transaction.id]
+        );
+      }
+      var results = await batch.commit();
+      if (results.contains(0) == false){
+        success = true;
+      }
+
+    } catch(e) {
+      success = false;
+    }
+
+    if (success){
+      if (widget.forEdit ?? false) {
+        WindowUtils.moveToLastScreen(context);
+      }
+      this.clearTextFields();
+
       // Success
       WindowUtils.showAlertDialog(
-          this.context, 'Status', 'Item deleted successfully');
+        context, "Status", 'Stock updated successfully');
     } else {
       // Failure
       WindowUtils.showAlertDialog(
-          this.context, 'Failed!', 'Problem deleting item, try again!');
+          context, 'Failed!', 'Problem updating stock, try again!');
+    }
+
+  }
+
+  void _deleteTransactionAndUpdateItem(BuildContext context) async {
+    // Reset item to state before this sales transaction
+    Item item = await this.databaseHelper.getItem("id", this.transaction.itemId);
+    item.increaseStock(this.transaction.items);
+
+    // Sync this newly updated item and delete transaction from db in batch
+    var results;
+    Database db = await this.databaseHelper.database;
+
+    try {
+      var batch = db.batch();
+      batch.delete(
+        'transaction_table', where: 'id = ?', whereArgs: [this.transaction.id]
+      );
+      batch.update(
+        'item_table', item.toMap(), where: 'id = ?', whereArgs: [item.id]
+      );
+
+      results = await batch.commit();
+    } catch(e) {
+      // Failure
+      debugPrint("ERROR, batch delete, Sales entry form: $e");
+      // close confirmation dialog
+      WindowUtils.moveToLastScreen(context);
+      WindowUtils.showAlertDialog(
+          context, 'Failed!', 'Problem deleting item, try again!');
+      return;
+    }
+
+    // close the delete confirm dialog now that its confirmed
+    WindowUtils.moveToLastScreen(context);
+
+    // Go to previous screen if for editing.
+    if (widget.forEdit ?? false) {
+      WindowUtils.moveToLastScreen(context, isTrue:true);
+    }
+
+    // Label as failed if results has one or more zero
+    if (results.contains(0)) {
+      // Failure
+      WindowUtils.showAlertDialog(
+          context, 'Failed!', 'Problem deleting item, try again!');
+    } else {
+      // Success
+      this.clearTextFields();
+      WindowUtils.showAlertDialog(
+          context, "Status", 'Item deleted successfully');
     }
   }
 
@@ -282,4 +343,5 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       return getForm;
     }));
   }
+
 }

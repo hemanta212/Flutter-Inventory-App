@@ -6,17 +6,12 @@ class Item {
   double _costPrice;
   double _markedPrice;
   double _totalStock = 0.0;
-  int _inTransaction;
-  int _outTransaction;
 
   Item(this._name,
       [this._nickName,
       this._costPrice,
       this._markedPrice,
-      this._description,
-      this._totalStock,
-      this._inTransaction,
-      this._outTransaction
+      this._description
       // NOTE : various item custom units
       ]);
 
@@ -24,10 +19,7 @@ class Item {
       [this._nickName,
       this._costPrice,
       this._markedPrice,
-      this._description,
-      this._totalStock,
-      this._inTransaction,
-      this._outTransaction]);
+      this._description]);
 
   int get id => _id;
 
@@ -42,10 +34,6 @@ class Item {
   double get markedPrice => _markedPrice;
 
   double get totalStock => _totalStock;
-
-  int get inTransaction => _inTransaction;
-
-  int get outTransaction => _outTransaction;
 
   set name(String newName) {
     if (newName.length <= 140) {
@@ -75,15 +63,7 @@ class Item {
     this._totalStock = newTotalStock;
   }
 
-  set inTransaction(int newId) {
-    this._inTransaction = newId;
-  }
-
-  set outTransaction(int newId) {
-    this._outTransaction = newId;
-  }
-
-  void addStock(double addedStock) {
+  void increaseStock(double addedStock) {
     this._totalStock += addedStock;
   }
 
@@ -104,8 +84,7 @@ class Item {
     map['description'] = _description;
     map['cost_price'] = _costPrice;
     map['marked_price'] = _markedPrice;
-    map['in_transaction'] = _inTransaction;
-    map['out_transaction'] = _outTransaction;
+    map['total_stock'] = _totalStock;
     return map;
   }
 
@@ -117,7 +96,6 @@ class Item {
     this._nickName = map['nick_name'];
     this._costPrice = map['cost_price'];
     this._markedPrice = map['marked_price'];
-    this._inTransaction = map['in_transaction'];
-    this._outTransaction = map['out_transaction'];
+    this._totalStock = map['total_stock'];
   }
 }

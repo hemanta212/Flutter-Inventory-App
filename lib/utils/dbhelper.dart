@@ -20,6 +20,7 @@ class DbHelper {
   String colDescription = 'description';
   String colCostPrice = 'cost_price';
   String colMarkedPrice = 'marked_price';
+  String coltotalStock = 'total_stock';
   String colInTransaction = 'in_transaction';
   String colOutTransaction = 'out_transaction';
 
@@ -53,10 +54,10 @@ class DbHelper {
   Future<Database> initializeDatabase() async {
     // Get the directory path for both android and ios to store Database
     Directory directory = await getApplicationDocumentsDirectory();
-    String path = directory.path + 'items1.db';
+    String path = directory.path + 'items3.db';
 
     // Open/create the db at a given path
-    var itemsDatabase =
+    Database itemsDatabase =
         await openDatabase(path, version: 1, onCreate: _createDb);
     return itemsDatabase;
   }
@@ -65,7 +66,7 @@ class DbHelper {
     // Item
     await db.execute('''
 CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT UNIQUE, $colNickName TEXT UNIQUE, '''
-        '$colDescription TEXT, $colCostPrice REAL, $colInTransaction INTEGER, $colOutTransaction INTEGER, $colMarkedPrice REAL)');
+        '$colDescription TEXT, $colCostPrice REAL, $colInTransaction INTEGER, $colOutTransaction INTEGER, $colMarkedPrice REAL,  $coltotalStock REAL UNIQUE)');
 
     // ItemTransaction
     await db.execute(
@@ -76,30 +77,32 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
   // Fetch operation: Get all item objects from database
   Future<List<Map<String, dynamic>>> getItemMapList() async {
     Database db = await this.database;
-    var result = await db.query(itemTable, orderBy: '$colName ASC');
+    List<Map<String, dynamic>> result = await db.query(itemTable, orderBy: '$colName ASC');
     return result;
   }
 
   // Insert Operation: insert a item to the database
   Future<int> insertItem(Item item) async {
     Database db = await this.database;
-    var noti = item.toMap();
-    debugPrint('insert item $noti');
-    var result = await db.insert(itemTable, item.toMap());
+    Map itemMap = item.toMap();
+    debugPrint('insert item $itemMap');
+    int result = await db.insert(itemTable, itemMap);
     return result;
   }
 
   // Update Operation: Update a item from database
   Future<int> updateItem(Item item) async {
     Database db = await this.database;
-    var result = await db.update(itemTable, item.toMap(),
+    Map itemMap = item.toMap();
+    debugPrint('Update item $itemMap');
+    int result = await db.update(itemTable, itemMap,
         where: '$colId = ?', whereArgs: [item.id]);
     return result;
   }
 
   // Delete Operation: delete a item from the database
   Future<int> deleteItem(int id) async {
-    var db = await this.database;
+    Database db = await this.database;
     int result =
         await db.rawDelete('DELETE FROM $itemTable WHERE $colId = $id');
     return result;
@@ -133,7 +136,7 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
 
   // Get the list of map from db and convert to 'Item List ' [List <Item>]
   Future<List<Item>> getItemList() async {
-    var itemMapList = await getItemMapList();
+    List<Map<String, dynamic>> itemMapList = await getItemMapList();
     int count = itemMapList.length;
 
     List<Item> itemList = List<Item>();
@@ -150,30 +153,32 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
   // Fetch operation: Get all transaction objects from database
   Future<List<Map<String, dynamic>>> getItemTransactionMapList() async {
     Database db = await this.database;
-    var result = await db.query(transactionTable, orderBy: '$col2Id DESC');
+    List<Map<String,dynamic>> result = await db.query(transactionTable, orderBy: '$col2Id DESC');
     return result;
   }
 
   // Insert Operation: insert a transaction to the database
   Future<int> insertItemTransaction(ItemTransaction transaction) async {
     Database db = await this.database;
-    var noti = transaction.toMap();
-    debugPrint('insert transaction $noti');
-    var result = await db.insert(transactionTable, transaction.toMap());
+    Map transactionMap = transaction.toMap();
+    debugPrint('insert transaction $transactionMap');
+    int result = await db.insert(transactionTable, transactionMap);
     return result;
   }
 
   // Update Operation: Update a transaction from database
   Future<int> updateItemTransaction(ItemTransaction transaction) async {
     Database db = await this.database;
-    var result = await db.update(transactionTable, transaction.toMap(),
+    Map transactionMap = transaction.toMap();
+    debugPrint('Update transaction $transactionMap');
+    int result = await db.update(transactionTable, transactionMap,
         where: '$col2Id = ?', whereArgs: [transaction.id]);
     return result;
   }
 
   // Delete Operation: delete a transaction from the database
   Future<int> deleteItemTransaction(int id) async {
-    var db = await this.database;
+    Database db = await this.database;
     int result =
         await db.rawDelete('DELETE FROM $transactionTable WHERE $col2Id = $id');
     return result;
@@ -190,7 +195,7 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
 
   // Get the list of map from db and convert to 'ItemTransaction List ' [List <ItemTransaction>]
   Future<List<ItemTransaction>> getItemTransactionList() async {
-    var transactionMapList = await getItemTransactionMapList();
+    List<Map<String, dynamic>> transactionMapList = await getItemTransactionMapList();
     int count = transactionMapList.length;
 
     List<ItemTransaction> transactionList = List<ItemTransaction>();

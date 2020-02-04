@@ -39,6 +39,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNickNameController = TextEditingController();
   TextEditingController markedPriceController = TextEditingController();
+  TextEditingController totalStockController = TextEditingController();
 
   @override
   void initState() {
@@ -57,10 +58,15 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       this.itemNickNameController.text = '${item.nickName ?? ''}';
       this.markedPriceController.text =
           FormUtils.fmtToIntIfPossible(this.item.markedPrice);
+      if (this.item.totalStock != 0){
+        this.totalStockController.text =
+            FormUtils.fmtToIntIfPossible(this.item.totalStock);
+      }
+
     }
   }
 
-  Widget buildForm() {
+  Widget buildForm(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
     return Column(children: <Widget>[
@@ -111,7 +117,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                         controller: this.itemNickNameController,
                         onChanged: () {
                           return setState(() {
-                            this.updateItemName();
+                            this.updateItemNickName();
                           });
                         },
                         validator: (value, labelText) {}),
@@ -136,6 +142,19 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                           onChanged: this.updateMarkedPrice,
                         )),
 
+                    // Marked Price of item
+                    Visibility(
+                        visible: this.totalStockController.text.isEmpty ?
+                            false:true, // defaults to false if totalStock is null
+                        child: WindowUtils.genTextField(
+                          labelText: "Total Stock",
+                          textStyle: textStyle,
+                          controller: this.totalStockController,
+                          enabled: false,
+                          onChanged: () {},
+                        )),
+
+
                     // TODO
                     /* Provide user to define Big unit terms like
                       1 box = 15 items
@@ -145,10 +164,13 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                     // save
                     Padding(
                         padding: EdgeInsets.only(
-                            bottom: _minimumPadding, top: _minimumPadding),
+                            bottom: 3 * _minimumPadding, top: 3 * _minimumPadding),
                         child: Row(children: <Widget>[
                           WindowUtils.genButton(
                               this.context, "Save", this.checkAndSave),
+                          Container(
+                            width: 5.0,
+                          ),
                           WindowUtils.genButton(
                               this.context, "Delete", this._delete)
                         ]) // Row
