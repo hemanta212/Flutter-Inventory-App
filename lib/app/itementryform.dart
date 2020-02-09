@@ -4,8 +4,6 @@ import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
-import 'package:bk_app/app/stockentryform.dart';
-import 'package:bk_app/app/salesentryform.dart';
 
 class ItemEntryForm extends StatefulWidget {
   final String title;
@@ -32,6 +30,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   _ItemEntryFormState(this.item, this.title);
 
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
+  String formName;
   String stringUnderName = '';
   String stringUnderNickName = '';
   String _currentFormSelected;
@@ -44,7 +43,8 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   @override
   void initState() {
     super.initState();
-    this._currentFormSelected = _forms[2];
+    this.formName = _forms[2];
+    this._currentFormSelected = formName;
     _initiateItemData();
   }
 
@@ -58,11 +58,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       this.itemNickNameController.text = '${item.nickName ?? ''}';
       this.markedPriceController.text =
           FormUtils.fmtToIntIfPossible(this.item.markedPrice);
-      if (this.item.totalStock != 0){
+      if (this.item.totalStock != 0) {
         this.totalStockController.text =
             FormUtils.fmtToIntIfPossible(this.item.totalStock);
       }
-
     }
   }
 
@@ -79,7 +78,8 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
         }).toList(),
 
         onChanged: (String newValueSelected) {
-          _dropDownItemSelected(newValueSelected);
+          WindowUtils.dropDownItemSelected(context,
+              caller: this.formName, target: newValueSelected);
         }, //onChanged
 
         value: _currentFormSelected,
@@ -104,7 +104,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                         }),
 
                     Visibility(
-                        visible: stringUnderName.isEmpty ? false : true,
+                        visible: stringUnderName.isNotEmpty,
                         child: Padding(
                           padding: EdgeInsets.all(_minimumPadding),
                           child: Text(this.stringUnderName),
@@ -123,7 +123,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                         validator: (value, labelText) {}),
 
                     Visibility(
-                        visible: stringUnderNickName.isEmpty ? false : true,
+                        visible: stringUnderNickName.isNotEmpty,
                         child: Padding(
                           padding: EdgeInsets.all(_minimumPadding),
                           child: Text(this.stringUnderNickName),
@@ -144,8 +144,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
                     // Marked Price of item
                     Visibility(
-                        visible: this.totalStockController.text.isEmpty ?
-                            false:true, // defaults to false if totalStock is null
+                        visible: this.totalStockController.text.isNotEmpty,
                         child: WindowUtils.genTextField(
                           labelText: "Total Stock",
                           textStyle: textStyle,
@@ -153,7 +152,6 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                           enabled: false,
                           onChanged: () {},
                         )),
-
 
                     // TODO
                     /* Provide user to define Big unit terms like
@@ -164,7 +162,8 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                     // save
                     Padding(
                         padding: EdgeInsets.only(
-                            bottom: 3 * _minimumPadding, top: 3 * _minimumPadding),
+                            bottom: 3 * _minimumPadding,
+                            top: 3 * _minimumPadding),
                         child: Row(children: <Widget>[
                           WindowUtils.genButton(
                               this.context, "Save", this.checkAndSave),
@@ -268,7 +267,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
     if (message == null && result != 0) {
       if (widget.forEdit ?? false) {
-        WindowUtils.moveToLastScreen(context);
+        WindowUtils.moveToLastScreen(context, modified: true);
       }
 
       // Success
@@ -282,7 +281,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   // Delete item data
   void _delete() async {
     if (widget.forEdit ?? false) {
-      WindowUtils.moveToLastScreen(context);
+      WindowUtils.moveToLastScreen(context, modified: true);
     }
 
     this.clearTextFields();
@@ -305,21 +304,5 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       WindowUtils.showAlertDialog(
           this.context, 'Status', 'Problem deleting item, try again!');
     }
-  }
-
-  void _dropDownItemSelected(String title) async {
-    Map _stringToForm = {
-      'Stock Entry': StockEntryForm(title: title),
-      'Sales Entry': SalesEntryForm(title: title),
-    };
-
-    if (title == 'Item Entry') {
-      return;
-    }
-
-    var getForm = _stringToForm[title];
-    await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return getForm;
-    }));
   }
 }

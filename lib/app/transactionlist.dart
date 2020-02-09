@@ -1,11 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
 import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/scaffold.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:bk_app/blocs/database_bloc.dart';
 
 class TransactionList extends StatefulWidget {
   @override
@@ -16,16 +16,16 @@ class TransactionList extends StatefulWidget {
 
 class TransactionListState extends State<TransactionList> {
   DbHelper databaseHelper = DbHelper();
-  List<ItemTransaction> transactionList;
-  int count = 0;
+  final bloc = TransactionBloc();
+
+  @override
+  void dispose() {
+    bloc.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (transactionList == null) {
-      transactionList = List<ItemTransaction>();
-      updateListView();
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text("Transactions"),
@@ -35,28 +35,37 @@ class TransactionListState extends State<TransactionList> {
     );
   }
 
-  ListView getTransactionListView() {
+  StreamBuilder<List<ItemTransaction>> getTransactionListView() {
     TextStyle nameStyle = Theme.of(context).textTheme.subhead;
 
-    return ListView.builder(
-      itemCount: count,
-      itemBuilder: (BuildContext context, int position) {
-        return Card(
-            color: Colors.white,
-            elevation: 2.0,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.red,
-                child: Icon(Icons.keyboard_arrow_right),
-              ),
-              title: Text(this.transactionList[position].description,
-                  style: nameStyle),
-              subtitle: Text(this.transactionList[position].date),
-              onTap: () {
-                navigateToDetail(
-                    this.transactionList[position], 'Edit Transaction');
-              },
-            ));
+    return StreamBuilder<List<ItemTransaction>>(
+      stream: bloc.transactions,
+      builder: (BuildContext context,
+          AsyncSnapshot<List<ItemTransaction>> snapshot) {
+        if (snapshot.hasData) {
+          return ListView.builder(
+            itemCount: snapshot.data.length,
+            itemBuilder: (BuildContext context, int index) {
+              ItemTransaction transaction = snapshot.data[index];
+              return Card(
+                  color: Colors.white,
+                  elevation: 2.0,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.keyboard_arrow_right),
+                    ),
+                    title: Text(transaction.description, style: nameStyle),
+                    subtitle: Text(transaction.date ?? ''),
+                    onTap: () {
+                      navigateToDetail(transaction, 'Edit Item');
+                    },
+                  ));
+            },
+          );
+        } else {
+          return Center(child: CircularProgressIndicator());
+        }
       },
     );
   }
@@ -82,16 +91,8 @@ class TransactionListState extends State<TransactionList> {
   }
 
   void updateListView() {
-    final Future<Database> dbFuture = databaseHelper.initializeDatabase();
-    dbFuture.then((database) {
-      Future<List<ItemTransaction>> transactionListFuture =
-          databaseHelper.getItemTransactionList();
-      transactionListFuture.then((transactionList) {
-        setState(() {
-          this.transactionList = transactionList;
-          this.count = transactionList.length;
-        });
-      });
+    setState(() {
+      this.bloc.getTransactions();
     });
   }
 }

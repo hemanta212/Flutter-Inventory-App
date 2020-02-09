@@ -21,8 +21,6 @@ class DbHelper {
   String colCostPrice = 'cost_price';
   String colMarkedPrice = 'marked_price';
   String coltotalStock = 'total_stock';
-  String colInTransaction = 'in_transaction';
-  String colOutTransaction = 'out_transaction';
 
   // ItemTransaction setup
   String transactionTable = 'transaction_table';
@@ -46,6 +44,7 @@ class DbHelper {
 
   Future<Database> get database async {
     if (_database == null) {
+      debugPrint('yes null initializing');
       _database = await initializeDatabase();
     }
     return _database;
@@ -54,30 +53,43 @@ class DbHelper {
   Future<Database> initializeDatabase() async {
     // Get the directory path for both android and ios to store Database
     Directory directory = await getApplicationDocumentsDirectory();
-    String path = directory.path + 'items3.db';
+    String path = directory.path + 'items5.db';
 
     // Open/create the db at a given path
-    Database itemsDatabase =
-        await openDatabase(path, version: 1, onCreate: _createDb);
+    Database itemsDatabase = await openDatabase(path,
+        version: 1, onOpen: (db) {}, onCreate: _createDb);
     return itemsDatabase;
   }
 
   void _createDb(Database db, int newVersion) async {
     // Item
-    await db.execute('''
-CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT UNIQUE, $colNickName TEXT UNIQUE, '''
-        '$colDescription TEXT, $colCostPrice REAL, $colInTransaction INTEGER, $colOutTransaction INTEGER, $colMarkedPrice REAL,  $coltotalStock REAL UNIQUE)');
+    await db.execute("CREATE TABLE $itemTable ("
+        "$colId INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "$colName TEXT UNIQUE,"
+        "$colNickName TEXT UNIQUE,"
+        "$colDescription TEXT,"
+        "$colCostPrice REAL,"
+        "$colMarkedPrice REAL,"
+        "$coltotalStock REAL"
+        ")");
 
     // ItemTransaction
-    await db.execute(
-        'CREATE TABLE $transactionTable($col2Id INTEGER PRIMARY KEY AUTOINCREMENT, $col2ItemId INTEGER, $col2Type INTEGER, '
-        '$col2Description TEXT, $col2Date TEXT, $col2Amount REAL, $col2Items REAL)');
+    await db.execute("CREATE TABLE $transactionTable ("
+        "$col2Id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "$col2ItemId INTEGER,"
+        "$col2Type INTEGER,"
+        "$col2Description TEXT,"
+        "$col2Date TEXT,"
+        "$col2Amount REAL,"
+        "$col2Items REAL"
+        ")");
   }
 
   // Fetch operation: Get all item objects from database
   Future<List<Map<String, dynamic>>> getItemMapList() async {
     Database db = await this.database;
-    List<Map<String, dynamic>> result = await db.query(itemTable, orderBy: '$colName ASC');
+    List<Map<String, dynamic>> result =
+        await db.query(itemTable, orderBy: '$colName ASC');
     return result;
   }
 
@@ -95,8 +107,8 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
     Database db = await this.database;
     Map itemMap = item.toMap();
     debugPrint('Update item $itemMap');
-    int result = await db.update(itemTable, itemMap,
-        where: '$colId = ?', whereArgs: [item.id]);
+    int result = await db
+        .update(itemTable, itemMap, where: '$colId = ?', whereArgs: [item.id]);
     return result;
   }
 
@@ -122,12 +134,12 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
     if (value == null) {
       return null;
     }
-
     Database db = await this.database;
     List<Map<String, dynamic>> mapResult =
         await db.query(itemTable, where: '$columnName = ?', whereArgs: [value]);
 
     if (mapResult.length == 0) {
+      debugPrint('null lenght');
       return null;
     }
     Item result = Item.fromMapObject(mapResult[0]);
@@ -153,7 +165,8 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
   // Fetch operation: Get all transaction objects from database
   Future<List<Map<String, dynamic>>> getItemTransactionMapList() async {
     Database db = await this.database;
-    List<Map<String,dynamic>> result = await db.query(transactionTable, orderBy: '$col2Id DESC');
+    List<Map<String, dynamic>> result =
+        await db.query(transactionTable, orderBy: '$col2Id DESC');
     return result;
   }
 
@@ -195,7 +208,8 @@ CREATE TABLE $itemTable($colId INTEGER PRIMARY KEY AUTOINCREMENT, $colName TEXT 
 
   // Get the list of map from db and convert to 'ItemTransaction List ' [List <ItemTransaction>]
   Future<List<ItemTransaction>> getItemTransactionList() async {
-    List<Map<String, dynamic>> transactionMapList = await getItemTransactionMapList();
+    List<Map<String, dynamic>> transactionMapList =
+        await getItemTransactionMapList();
     int count = transactionMapList.length;
 
     List<ItemTransaction> transactionList = List<ItemTransaction>();

@@ -1,3 +1,6 @@
+import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/utils/form.dart';
+
 class ItemTransaction {
   int _id;
   int _itemId;
@@ -23,11 +26,11 @@ class ItemTransaction {
 
   double get amount => _amount;
 
-  String get description => _description;
-
   String get date => _date;
 
   double get items => _items;
+
+  String get description => _description;
 
   set itemId(int newItemId) {
     this._itemId = newItemId;

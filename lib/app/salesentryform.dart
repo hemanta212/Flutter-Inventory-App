@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sqflite/sqflite.dart';
 
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
@@ -8,8 +7,6 @@ import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
-import 'package:bk_app/app/itementryform.dart';
-import 'package:bk_app/app/stockentryform.dart';
 
 class SalesEntryForm extends StatefulWidget {
   final String title;
@@ -33,9 +30,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
+  String formName;
   String _currentFormSelected;
   DbHelper databaseHelper = DbHelper();
 
+  String disclaimerText = '';
   String stringUnderName = '';
   int tempItemId;
 
@@ -46,7 +45,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   @override
   void initState() {
     super.initState();
-    _currentFormSelected = _forms[0];
+    this.formName = _forms[0];
+    _currentFormSelected = this.formName;
     _initiateTransactionData();
   }
 
@@ -66,8 +66,16 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       Future<Item> itemFuture =
           this.databaseHelper.getItem("id", this.transaction.itemId);
       itemFuture.then((item) {
-        this.tempItemId = this.transaction.itemId;
-        this.itemNameController.text = '${item.name}';
+        if (item == null) {
+          setState(() {
+            this.disclaimerText =
+                'Orphan Transaction: The item associated with this transaction has been deleted';
+          });
+        } else {
+          debugPrint("hi this item is $item");
+          this.tempItemId = this.transaction.itemId;
+          this.itemNameController.text = '${item.name}';
+        }
       });
     }
   }
@@ -85,7 +93,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
         }).toList(),
 
         onChanged: (String newValueSelected) {
-          _dropDownItemSelected(newValueSelected);
+          WindowUtils.dropDownItemSelected(context,
+              caller: this.formName, target: newValueSelected);
         }, //onChanged
 
         value: _currentFormSelected,
@@ -97,6 +106,14 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
               child: Padding(
                   padding: EdgeInsets.all(_minimumPadding * 2),
                   child: ListView(children: <Widget>[
+                    // Any disclaimer for user
+                    Visibility(
+                      visible: this.disclaimerText.isNotEmpty,
+                      child: Padding(
+                          padding: EdgeInsets.all(_minimumPadding),
+                          child: Text(this.disclaimerText)),
+                    ),
+
                     // Item name
                     WindowUtils.genTextField(
                         labelText: "Item name",
@@ -110,7 +127,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                         }),
 
                     Visibility(
-                      visible: stringUnderName.isEmpty ? false : true,
+                      visible: stringUnderName.isNotEmpty,
                       child: Padding(
                           padding: EdgeInsets.all(_minimumPadding),
                           child: Text(this.stringUnderName)),
@@ -136,15 +153,15 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                     // save
                     Padding(
                         padding: EdgeInsets.only(
-                            bottom: _minimumPadding * 3, top: 3 * _minimumPadding),
+                            bottom: _minimumPadding * 3,
+                            top: 3 * _minimumPadding),
                         child: Row(children: <Widget>[
                           WindowUtils.genButton(
                               context, "Save", this.checkAndSave),
                           Container(
                             width: _minimumPadding,
                           ),
-                          WindowUtils.genButton(
-                              context, "Delete", this._delete)
+                          WindowUtils.genButton(context, "Delete", this._delete)
                         ]) // Row
 
                         ), // Paddin
@@ -160,7 +177,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   }
 
   void updateSellingPrice() {
-    this.transaction.amount = double.parse(this.sellingPriceController.text).abs();
+    this.transaction.amount =
+        double.parse(this.sellingPriceController.text).abs();
   }
 
   void updateItemName() {
@@ -197,8 +215,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   void _save() async {
     Item item = await this.databaseHelper.getItem("id", this.tempItemId);
     if (item == null) {
-      WindowUtils.showAlertDialog(
-          context, "Failed!", "Item not registered");
+      WindowUtils.showAlertDialog(context, "Failed!", "Item not registered");
       return;
     }
 
@@ -206,142 +223,59 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.transaction.itemId = item.id;
     this.transaction.date = DateFormat.yMMMd().add_Hms().format(DateTime.now());
     this.transaction.items = items;
+    String itemNo = FormUtils.fmtToIntIfPossible(this.transaction.items);
+    String amount = FormUtils.fmtToIntIfPossible(this.transaction.amount);
     this.transaction.description =
-        'Amount: ${this.transaction.amount}\n Sold: ${item.name}';
+        "Sold: $itemNo ${item.name} \nAmount: $amount";
+
     item.decreaseStock(items);
 
-    _saveTransactionAndUpdateItem(transaction, item);
+    bool success =
+        await FormUtils.saveTransactionAndUpdateItem(this.transaction, item);
+
+    this.saveCallback(success);
   }
 
   // Delete item data
   void _delete() async {
+    // Reset item to state before this sales transaction
+    Item item =
+        await this.databaseHelper.getItem("id", this.transaction.itemId);
+    item.increaseStock(this.transaction.items);
 
     if (this.transaction.id == null) {
       // Case 1: Abandon new item creation
       this.clearTextFields();
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
-    }else{
-      // Case 2: Delete item from database after user confirms again
-      WindowUtils.showAlertDialog(
-        context,
-        "Delete?",
-        '''Deleting a transaction may delete important information
-        It cannot be undone. Delete?''',
-        onPressed: _deleteTransactionAndUpdateItem,
-      );
-    }
-  }
-
-  void _saveTransactionAndUpdateItem(ItemTransaction transaction, Item item) async {
-    var success;
-    Database db = await this.databaseHelper.database;
-
-    try {
-      var batch = db.batch();
-      batch.update(
-        'item_table', item.toMap(), where: 'id = ?', whereArgs: [item.id]
-      );
-      if (transaction.id == null){
-        batch.insert('transaction_table', transaction.toMap());
-      } else {
-        batch.update(
-          'transaction_table',
-          transaction.toMap(),
-          where: 'id = ?',
-          whereArgs: [transaction.id]
-        );
-      }
-      var results = await batch.commit();
-      if (results.contains(0) == false){
-        success = true;
-      }
-
-    } catch(e) {
-      success = false;
-    }
-
-    if (success){
-      if (widget.forEdit ?? false) {
-        WindowUtils.moveToLastScreen(context);
-      }
-      this.clearTextFields();
-
-      // Success
-      WindowUtils.showAlertDialog(
-        context, "Status", 'Stock updated successfully');
     } else {
-      // Failure
-      WindowUtils.showAlertDialog(
-          context, 'Failed!', 'Problem updating stock, try again!');
+      // Case 2: Delete item from database after user confirms again
+      WindowUtils.showAlertDialog(context, "Delete?",
+          "This may delete important information forever. Delete?",
+          onPressed: (buildContext) {
+        FormUtils.deleteTransactionAndUpdateItem(
+            this.saveCallback, this.transaction, item);
+      });
     }
-
   }
 
-  void _deleteTransactionAndUpdateItem(BuildContext context) async {
-    // Reset item to state before this sales transaction
-    Item item = await this.databaseHelper.getItem("id", this.transaction.itemId);
-    item.increaseStock(this.transaction.items);
-
-    // Sync this newly updated item and delete transaction from db in batch
-    var results;
-    Database db = await this.databaseHelper.database;
-
-    try {
-      var batch = db.batch();
-      batch.delete(
-        'transaction_table', where: 'id = ?', whereArgs: [this.transaction.id]
-      );
-      batch.update(
-        'item_table', item.toMap(), where: 'id = ?', whereArgs: [item.id]
-      );
-
-      results = await batch.commit();
-    } catch(e) {
-      // Failure
-      debugPrint("ERROR, batch delete, Sales entry form: $e");
-      // close confirmation dialog
-      WindowUtils.moveToLastScreen(context);
-      WindowUtils.showAlertDialog(
-          context, 'Failed!', 'Problem deleting item, try again!');
-      return;
-    }
-
-    // close the delete confirm dialog now that its confirmed
+  void saveCallback(bool success) {
+    // close the confirm dialog for delete
     WindowUtils.moveToLastScreen(context);
 
-    // Go to previous screen if for editing.
-    if (widget.forEdit ?? false) {
-      WindowUtils.moveToLastScreen(context, isTrue:true);
-    }
+    if (success) {
+      this.clearTextFields();
+      if (this.widget.forEdit ?? false) {
+        WindowUtils.moveToLastScreen(this.context, modified: true);
+      }
 
-    // Label as failed if results has one or more zero
-    if (results.contains(0)) {
+      // Success
+      WindowUtils.showAlertDialog(
+          this.context, "Status", 'Sales updated successfully');
+    } else {
       // Failure
       WindowUtils.showAlertDialog(
-          context, 'Failed!', 'Problem deleting item, try again!');
-    } else {
-      // Success
-      this.clearTextFields();
-      WindowUtils.showAlertDialog(
-          context, "Status", 'Item deleted successfully');
+          this.context, 'Failed!', 'Problem updating stock, try again!');
     }
   }
-
-  void _dropDownItemSelected(String title) async {
-    Map _stringToForm = {
-      'Item Entry': ItemEntryForm(title: title),
-      'Stock Entry': StockEntryForm(title: title),
-    };
-
-    if (title == 'Sales Entry') {
-      return;
-    }
-
-    var getForm = _stringToForm[title];
-    await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return getForm;
-    }));
-  }
-
 }

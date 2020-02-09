@@ -7,8 +7,6 @@ import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
-import 'package:bk_app/app/itementryform.dart';
-import 'package:bk_app/app/salesentryform.dart';
 
 class StockEntryForm extends StatefulWidget {
   final String title;
@@ -34,6 +32,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
   DbHelper databaseHelper = DbHelper();
 
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
+  String formName;
+  String disclaimerText = '';
   String stringUnderName = '';
   String _currentFormSelected;
   int tempItemId;
@@ -46,7 +46,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
   @override
   void initState() {
     super.initState();
-    this._currentFormSelected = this._forms[1];
+    this.formName = _forms[1];
+    this._currentFormSelected = formName;
     _initiateTransactionData();
   }
 
@@ -66,6 +67,12 @@ class _StockEntryFormState extends State<StockEntryForm> {
       Future<Item> itemFuture =
           this.databaseHelper.getItem("id", this.transaction.itemId);
       itemFuture.then((item) {
+        if (item == null) {
+          setState(() {
+            this.disclaimerText =
+                'Orphan Transaction: The item associated with this transaction has been deleted';
+          });
+        }
         this.tempItemId = this.transaction.itemId;
         this.itemNameController.text = '${item.name}';
         this.markedPriceController.text =
@@ -87,7 +94,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
         }).toList(),
 
         onChanged: (String newValueSelected) {
-          _dropDownItemSelected(newValueSelected);
+          WindowUtils.dropDownItemSelected(context,
+              caller: this.formName, target: newValueSelected);
         }, //onChanged
 
         value: _currentFormSelected,
@@ -99,6 +107,14 @@ class _StockEntryFormState extends State<StockEntryForm> {
               child: Padding(
                   padding: EdgeInsets.all(_minimumPadding * 2),
                   child: ListView(children: <Widget>[
+                    // Any disclaimer for user
+                    Visibility(
+                      visible: this.disclaimerText.isNotEmpty,
+                      child: Padding(
+                          padding: EdgeInsets.all(_minimumPadding),
+                          child: Text(this.disclaimerText)),
+                    ),
+
                     // Item name
                     WindowUtils.genTextField(
                       labelText: "Item name",
@@ -113,7 +129,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
                     ),
 
                     Visibility(
-                      visible: stringUnderName.isEmpty ? false : true,
+                      visible: stringUnderName.isNotEmpty,
                       child: Padding(
                           padding: EdgeInsets.all(_minimumPadding),
                           child: Text(this.stringUnderName)),
@@ -155,7 +171,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
                     // save
                     Padding(
                         padding: EdgeInsets.only(
-                            bottom: 3 * _minimumPadding, top: 3 * _minimumPadding),
+                            bottom: 3 * _minimumPadding,
+                            top: 3 * _minimumPadding),
                         child: Row(children: <Widget>[
                           WindowUtils.genButton(
                               this.context, "Save", this.checkAndSave),
@@ -225,83 +242,59 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.transaction.itemId = item.id;
     this.transaction.date = DateFormat.yMMMd().add_Hms().format(DateTime.now());
     this.transaction.items = items;
+    String itemNo = FormUtils.fmtToIntIfPossible(this.transaction.items);
+    String amount = FormUtils.fmtToIntIfPossible(this.transaction.amount);
     this.transaction.description =
-        'Amount: ${this.transaction.amount}\n Added: ${item.name}';
+        "Sold: $itemNo ${item.name} \nAmount: $amount";
 
     item.markedPrice = double.parse(this.markedPriceController.text).abs();
     item.increaseStock(items);
 
-    int result;
-    List<int> results = [];
-    if (this.transaction.id != null) {
-      // Case 1: Update operation
-      debugPrint("Updated item");
-      result =
-          await this.databaseHelper.updateItemTransaction(this.transaction);
-    } else {
-      // Case 2: Insert operation
-      result =
-          await this.databaseHelper.insertItemTransaction(this.transaction);
-    }
+    bool success =
+        await FormUtils.saveTransactionAndUpdateItem(this.transaction, item);
 
-    var result2 = await this.databaseHelper.updateItem(item);
-    results = [result, result2];
-
-    if (results.contains(0)) {
-      // Failure
-      WindowUtils.showAlertDialog(
-          this.context, 'Status', 'Problem updating stock, try again!');
-    } else {
-      if (widget.forEdit ?? false) {
-        WindowUtils.moveToLastScreen(context);
-      }
-      this.clearTextFields();
-      // Success
-      WindowUtils.showAlertDialog(
-          this.context, 'Status', 'Stock updated successfully');
-    }
+    this.saveCallback(success);
   }
 
   // Delete item data
   void _delete() async {
-    if (widget.forEdit ?? false) {
-      WindowUtils.moveToLastScreen(context);
-    }
+    Item item =
+        await this.databaseHelper.getItem("id", this.transaction.itemId);
+    item.decreaseStock(this.transaction.items);
 
-    this.clearTextFields();
     if (this.transaction.id == null) {
       // Case 1: Abandon new item creation
-      WindowUtils.showAlertDialog(this.context, 'Status', 'Item not created');
+      this.clearTextFields();
+      WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
-    }
-    // Case 2: Delete item from database
-    int result =
-        await this.databaseHelper.deleteItemTransaction(this.transaction.id);
-
-    if (result != 0) {
-      // Success
-      WindowUtils.showAlertDialog(
-          this.context, 'Status', 'Item deleted successfully');
     } else {
-      // Failure
-      WindowUtils.showAlertDialog(
-          this.context, 'Failed!', 'Problem deleting item, try again!');
+      // Case 2: Delete item from database after user confirms again
+      WindowUtils.showAlertDialog(context, "Delete?",
+          "This may delete important information forever. Delete?",
+          onPressed: (buildContext) {
+        FormUtils.deleteTransactionAndUpdateItem(
+            this.saveCallback, this.transaction, item);
+      });
     }
   }
 
-  void _dropDownItemSelected(String title) async {
-    Map _stringToForm = {
-      'Item Entry': ItemEntryForm(title: title),
-      'Sales Entry': SalesEntryForm(title: title),
-    };
+  void saveCallback(bool success) {
+    // close the confirm dialog for delete
+    WindowUtils.moveToLastScreen(context);
 
-    if (title == 'Stock Entry') {
-      return;
+    if (success) {
+      this.clearTextFields();
+      if (this.widget.forEdit ?? false) {
+        WindowUtils.moveToLastScreen(this.context, modified: true);
+      }
+
+      // Success
+      WindowUtils.showAlertDialog(
+          this.context, "Status", 'Stock updated successfully');
+    } else {
+      // Failure
+      WindowUtils.showAlertDialog(
+          this.context, 'Failed!', 'Problem updating stock, try again!');
     }
-
-    var getForm = _stringToForm[title];
-    await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return getForm;
-    }));
   }
 }

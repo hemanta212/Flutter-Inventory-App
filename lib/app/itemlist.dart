@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+
 import 'package:bk_app/app/itementryform.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/scaffold.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:bk_app/blocs/database_bloc.dart';
 
 class ItemList extends StatefulWidget {
   @override
@@ -15,16 +15,16 @@ class ItemList extends StatefulWidget {
 
 class ItemListState extends State<ItemList> {
   DbHelper databaseHelper = DbHelper();
-  List<Item> itemList;
-  int count = 0;
+  final bloc = ItemBloc();
+
+  @override
+  void dispose() {
+    bloc.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (itemList == null) {
-      itemList = List<Item>();
-      updateListView();
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text("Items"),
@@ -41,35 +41,36 @@ class ItemListState extends State<ItemList> {
     );
   }
 
-  ListView getItemListView() {
+  StreamBuilder<List<Item>> getItemListView() {
     TextStyle nameStyle = Theme.of(context).textTheme.subhead;
 
-    return ListView.builder(
-      itemCount: count,
-      itemBuilder: (BuildContext context, int position) {
-        return Card(
-            color: Colors.white,
-            elevation: 2.0,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.red,
-                child: Icon(Icons.keyboard_arrow_right),
-              ),
-              title: Text(this.itemList[position].name, style: nameStyle),
-              subtitle: Text(this.itemList[position].nickName ?? ''),
-
-              /*
-              trailing: GestureDetector(
-                child: Icon(Icons.delete, color: Colors.grey),
-                onTap: () {
-                  _delete(context, itemList[position]);
-                },
-              ),*/
-
-              onTap: () {
-                navigateToDetail(this.itemList[position], 'Edit Item');
-              },
-            ));
+    return StreamBuilder<List<Item>>(
+      stream: bloc.items,
+      builder: (BuildContext context, AsyncSnapshot<List<Item>> snapshot) {
+        if (snapshot.hasData) {
+          return ListView.builder(
+            itemCount: snapshot.data.length,
+            itemBuilder: (BuildContext context, int index) {
+              Item item = snapshot.data[index];
+              return Card(
+                  color: Colors.white,
+                  elevation: 2.0,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.keyboard_arrow_right),
+                    ),
+                    title: Text(item.name, style: nameStyle),
+                    subtitle: Text(item.nickName ?? ''),
+                    onTap: () {
+                      navigateToDetail(item, 'Edit Item');
+                    },
+                  ));
+            },
+          );
+        } else {
+          return Center(child: CircularProgressIndicator());
+        }
       },
     );
   }
@@ -86,15 +87,8 @@ class ItemListState extends State<ItemList> {
   }
 
   void updateListView() {
-    final Future<Database> dbFuture = databaseHelper.initializeDatabase();
-    dbFuture.then((database) {
-      Future<List<Item>> itemListFuture = databaseHelper.getItemList();
-      itemListFuture.then((itemList) {
-        setState(() {
-          this.itemList = itemList;
-          this.count = itemList.length;
-        });
-      });
+    setState(() {
+      this.bloc.getItems();
     });
   }
 }
