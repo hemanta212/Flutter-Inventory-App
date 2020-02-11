@@ -28,6 +28,7 @@ class DbHelper {
   String col2ItemId = 'item_id';
   String col2Description = 'description';
   String col2Amount = 'amount';
+  String col2CostPrice = 'cost_price';
   String col2Type = 'type';
   String col2Date = 'date';
   String col2Items = 'items';
@@ -53,7 +54,7 @@ class DbHelper {
   Future<Database> initializeDatabase() async {
     // Get the directory path for both android and ios to store Database
     Directory directory = await getApplicationDocumentsDirectory();
-    String path = directory.path + 'items5.db';
+    String path = directory.path + 'items3.db';
 
     // Open/create the db at a given path
     Database itemsDatabase = await openDatabase(path,
@@ -81,6 +82,7 @@ class DbHelper {
         "$col2Description TEXT,"
         "$col2Date TEXT,"
         "$col2Amount REAL,"
+        "$col2CostPrice REAL,"
         "$col2Items REAL"
         ")");
   }
@@ -139,7 +141,7 @@ class DbHelper {
         await db.query(itemTable, where: '$columnName = ?', whereArgs: [value]);
 
     if (mapResult.length == 0) {
-      debugPrint('null lenght');
+      debugPrint('null length of itemList in getItem');
       return null;
     }
     Item result = Item.fromMapObject(mapResult[0]);

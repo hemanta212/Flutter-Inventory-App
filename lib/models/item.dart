@@ -6,20 +6,15 @@ class Item {
   double _costPrice;
   double _markedPrice;
   double _totalStock = 0.0;
+  Map<String, dynamic> _costPricesMap = Map();
 
   Item(this._name,
-      [this._nickName,
-      this._costPrice,
-      this._markedPrice,
-      this._description
+      [this._nickName, this._costPrice, this._markedPrice, this._description
       // NOTE : various item custom units
       ]);
 
   Item.withId(this._id, this._name,
-      [this._nickName,
-      this._costPrice,
-      this._markedPrice,
-      this._description]);
+      [this._nickName, this._costPrice, this._markedPrice, this._description]);
 
   int get id => _id;
 
@@ -52,6 +47,7 @@ class Item {
   }
 
   set costPrice(double newCostPrice) {
+    //if (this._costPricesMap['$newCostPrice'].isFinite ?? false) {}
     this._costPrice = newCostPrice;
   }
 

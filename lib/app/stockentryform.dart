@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
+import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
 
@@ -68,15 +68,17 @@ class _StockEntryFormState extends State<StockEntryForm> {
           this.databaseHelper.getItem("id", this.transaction.itemId);
       itemFuture.then((item) {
         if (item == null) {
+          this.transaction.itemId = null;
           setState(() {
             this.disclaimerText =
                 'Orphan Transaction: The item associated with this transaction has been deleted';
           });
+        } else {
+          this.tempItemId = this.transaction.itemId;
+          this.itemNameController.text = '${item.name}';
+          this.markedPriceController.text =
+              FormUtils.fmtToIntIfPossible(item.markedPrice);
         }
-        this.tempItemId = this.transaction.itemId;
-        this.itemNameController.text = '${item.name}';
-        this.markedPriceController.text =
-            FormUtils.fmtToIntIfPossible(item.markedPrice);
       });
     }
   }
@@ -215,11 +217,12 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.transaction.amount = double.parse(this.costPriceController.text).abs();
   }
 
-  void clearTextFields() {
+  void clearFieldsAndTransaction() {
     this.itemNameController.text = '';
     this.itemNumberController.text = '';
     this.costPriceController.text = '';
     this.markedPriceController.text = '';
+    this.transaction = ItemTransaction(1, null, 0.0, 0.0, '');
   }
 
   void checkAndSave() {
@@ -238,17 +241,26 @@ class _StockEntryFormState extends State<StockEntryForm> {
     }
 
     double items = double.parse(this.itemNumberController.text).abs();
+    double netAddition;
+
+    if (this.transaction.id != null && this.transaction.itemId == item.id) {
+      // Update case.
+      debugPrint("Update case stock entry");
+      netAddition = items - this.transaction.items;
+    } else {
+      netAddition = items;
+    }
 
     this.transaction.itemId = item.id;
-    this.transaction.date = DateFormat.yMMMd().add_Hms().format(DateTime.now());
     this.transaction.items = items;
     String itemNo = FormUtils.fmtToIntIfPossible(this.transaction.items);
     String amount = FormUtils.fmtToIntIfPossible(this.transaction.amount);
     this.transaction.description =
         "Sold: $itemNo ${item.name} \nAmount: $amount";
 
+    item.costPrice = this.transaction.amount / items;
     item.markedPrice = double.parse(this.markedPriceController.text).abs();
-    item.increaseStock(items);
+    item.increaseStock(netAddition);
 
     bool success =
         await FormUtils.saveTransactionAndUpdateItem(this.transaction, item);
@@ -260,17 +272,16 @@ class _StockEntryFormState extends State<StockEntryForm> {
   void _delete() async {
     Item item =
         await this.databaseHelper.getItem("id", this.transaction.itemId);
-    item.decreaseStock(this.transaction.items);
 
     if (this.transaction.id == null) {
       // Case 1: Abandon new item creation
-      this.clearTextFields();
+      this.clearFieldsAndTransaction();
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
     } else {
       // Case 2: Delete item from database after user confirms again
       WindowUtils.showAlertDialog(context, "Delete?",
-          "This may delete important information forever. Delete?",
+          "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(
             this.saveCallback, this.transaction, item);
@@ -279,16 +290,14 @@ class _StockEntryFormState extends State<StockEntryForm> {
   }
 
   void saveCallback(bool success) {
-    // close the confirm dialog for delete
-    WindowUtils.moveToLastScreen(context);
-
     if (success) {
-      this.clearTextFields();
+      this.clearFieldsAndTransaction();
       if (this.widget.forEdit ?? false) {
         WindowUtils.moveToLastScreen(this.context, modified: true);
       }
 
       // Success
+      refreshItemTransactionMapCache();
       WindowUtils.showAlertDialog(
           this.context, "Status", 'Stock updated successfully');
     } else {
@@ -296,5 +305,11 @@ class _StockEntryFormState extends State<StockEntryForm> {
       WindowUtils.showAlertDialog(
           this.context, 'Failed!', 'Problem updating stock, try again!');
     }
+  }
+
+  void refreshItemTransactionMapCache() async {
+    // refresh item map cache since item is changed.
+    Map newItemTransactionMap =
+        await StartupCache(reload: true).itemTransactionMap;
   }
 }

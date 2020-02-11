@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/form.dart';
+import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
 
@@ -197,10 +197,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     });
   }
 
-  void clearTextFields() {
+  void clearFieldsAndTransaction() {
     this.itemNameController.text = '';
     this.itemNumberController.text = '';
     this.sellingPriceController.text = '';
+    this.transaction = ItemTransaction(0, null, 0.0, 0.0, '');
   }
 
   void checkAndSave() {
@@ -220,15 +221,38 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     }
 
     double items = double.parse(this.itemNumberController.text).abs();
+
+    // Additional checks.
+    if (this.transaction.id == null && this.transaction.itemId != item.id) {
+      // Case insert
+      if (item.totalStock < items) {
+        WindowUtils.showAlertDialog(
+            context, "Failed!", "Empty stock. Cannot sell.");
+        return;
+      } else {
+        item.decreaseStock(items);
+      }
+    } else {
+      // Case update
+      debugPrint(
+          "updating transaction and this is current stock ${item.totalStock} of ${item.name}");
+      double netAddition = items - this.transaction.items;
+      if (item.totalStock < netAddition) {
+        WindowUtils.showAlertDialog(
+            context, "Failed!", "Empty stock. Cannot sell.");
+        return;
+      } else {
+        item.decreaseStock(netAddition);
+      }
+    }
+
     this.transaction.itemId = item.id;
-    this.transaction.date = DateFormat.yMMMd().add_Hms().format(DateTime.now());
     this.transaction.items = items;
+    this.transaction.costPrice = item.costPrice;
     String itemNo = FormUtils.fmtToIntIfPossible(this.transaction.items);
     String amount = FormUtils.fmtToIntIfPossible(this.transaction.amount);
     this.transaction.description =
         "Sold: $itemNo ${item.name} \nAmount: $amount";
-
-    item.decreaseStock(items);
 
     bool success =
         await FormUtils.saveTransactionAndUpdateItem(this.transaction, item);
@@ -238,20 +262,21 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   // Delete item data
   void _delete() async {
-    // Reset item to state before this sales transaction
+    // Initialize the item to reset it.
+    debugPrint(
+        "this id is ${this.transaction.id} item id is ${this.transaction.itemId}");
     Item item =
         await this.databaseHelper.getItem("id", this.transaction.itemId);
-    item.increaseStock(this.transaction.items);
 
     if (this.transaction.id == null) {
       // Case 1: Abandon new item creation
-      this.clearTextFields();
+      this.clearFieldsAndTransaction();
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
     } else {
       // Case 2: Delete item from database after user confirms again
       WindowUtils.showAlertDialog(context, "Delete?",
-          "This may delete important information forever. Delete?",
+          "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(
             this.saveCallback, this.transaction, item);
@@ -260,16 +285,14 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   }
 
   void saveCallback(bool success) {
-    // close the confirm dialog for delete
-    WindowUtils.moveToLastScreen(context);
-
     if (success) {
-      this.clearTextFields();
+      this.clearFieldsAndTransaction();
       if (this.widget.forEdit ?? false) {
         WindowUtils.moveToLastScreen(this.context, modified: true);
       }
 
       // Success
+      refreshItemTransactionMapCache();
       WindowUtils.showAlertDialog(
           this.context, "Status", 'Sales updated successfully');
     } else {
@@ -277,5 +300,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       WindowUtils.showAlertDialog(
           this.context, 'Failed!', 'Problem updating stock, try again!');
     }
+  }
+
+  void refreshItemTransactionMapCache() async {
+    // refresh item map cache since item is changed.
+    Map newItemTransactionMap =
+        await StartupCache(reload: true).itemTransactionMap;
   }
 }

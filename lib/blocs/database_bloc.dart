@@ -30,6 +30,11 @@ class ItemBloc {
     DbHelper().insertItem(item);
     getItems();
   }
+
+  update(Item item) {
+    DbHelper().updateItem(item);
+    getItems();
+  }
 }
 
 class TransactionBloc {
@@ -59,4 +64,11 @@ class TransactionBloc {
     DbHelper().insertItemTransaction(transaction);
     getTransactions();
   }
+
+/*
+  update(ItemTransaction transaction) {
+    DbHelper().updateItemTransaction(transaction);
+    getTransactions();
+  }
+  */
 }

@@ -23,6 +23,7 @@ class WindowUtils {
   }
 
   static void moveToLastScreen(BuildContext context, {bool modified = false}) {
+    debugPrint("I am called. Going back screen");
     Navigator.pop(context, modified);
   }
 
@@ -33,7 +34,7 @@ class WindowUtils {
 
   static void showAlertDialog(
       BuildContext context, String title, String message,
-      {onPressed = moveToLastScreen}) {
+      {onPressed}) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -54,7 +55,10 @@ class WindowUtils {
                 style: TextStyle(color: Colors.white),
               ),
               onPressed: () {
-                onPressed(context);
+                moveToLastScreen(context);
+                if (onPressed != null) {
+                  onPressed(context);
+                }
               },
               color: Theme.of(context).accentColor,
             ),

@@ -1,22 +1,20 @@
-import 'package:bk_app/utils/dbhelper.dart';
-import 'package:bk_app/utils/form.dart';
-
 class ItemTransaction {
   int _id;
   int _itemId;
   int _type;
   double _amount;
+  double _costPrice;
   double _items;
   String _date;
   String _description;
 
   ItemTransaction(
       this._type, this._itemId, this._amount, this._items, this._date,
-      [this._description]);
+      [this._description, this._costPrice]);
 
   ItemTransaction.withId(
       this._id, this._type, this._itemId, this._amount, this._items, this._date,
-      [this._description]);
+      [this._description, this._costPrice]);
 
   int get id => _id;
 
@@ -25,6 +23,8 @@ class ItemTransaction {
   int get type => _type;
 
   double get amount => _amount;
+
+  double get costPrice => _costPrice;
 
   String get date => _date;
 
@@ -48,8 +48,12 @@ class ItemTransaction {
     this._date = newDate;
   }
 
-  set amount(double newCostPrice) {
-    this._amount = newCostPrice;
+  set amount(double newAmount) {
+    this._amount = newAmount;
+  }
+
+  set costPrice(double newCostPrice) {
+    this._costPrice = newCostPrice;
   }
 
   set items(double newItems) {
@@ -70,6 +74,7 @@ class ItemTransaction {
     map['date'] = _date;
     map['amount'] = _amount;
     map['items'] = _items;
+    map['cost_price'] = _costPrice;
     return map;
   }
 
@@ -81,6 +86,7 @@ class ItemTransaction {
     this._itemId = map['item_id'];
     this._date = map['date'];
     this._amount = map['amount'];
+    this._costPrice = map['cost_price'];
     this._items = map['items'];
   }
 }

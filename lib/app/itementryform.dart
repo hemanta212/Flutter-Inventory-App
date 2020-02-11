@@ -4,6 +4,7 @@ import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
+import 'package:bk_app/utils/cache.dart';
 
 class ItemEntryForm extends StatefulWidget {
   final String title;
@@ -228,10 +229,11 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
     });
   }
 
-  void clearTextFields() {
+  void clearFieldsAndItem() {
     this.itemNameController.text = '';
     this.itemNickNameController.text = '';
     this.markedPriceController.text = '';
+    this.item = Item('');
   }
 
   void checkAndSave() {
@@ -271,32 +273,47 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       }
 
       // Success
-      this.clearTextFields();
+      this.clearFieldsAndItem();
       message = 'Item saved successfully';
+      refreshItemMapCache();
+      debugPrint("item saved but here is ${this.itemNickNameController.text}");
     }
-
     WindowUtils.showAlertDialog(this.context, 'Status', message);
   }
 
   // Delete item data
   void _delete() async {
-    if (widget.forEdit ?? false) {
-      WindowUtils.moveToLastScreen(context, modified: true);
-    }
-
-    this.clearTextFields();
-
     if (this.item.id == null) {
       // Case 1: Abandon new item creation
+      if (widget.forEdit ?? false) {
+        WindowUtils.moveToLastScreen(context, modified: true);
+      }
+
+      this.clearFieldsAndItem();
       WindowUtils.showAlertDialog(this.context, 'Status', 'Item not created');
       return;
+    } else {
+      // Case 2: Delete item from database after user confirms again
+      WindowUtils.showAlertDialog(context, "Delete?",
+          "This will delete all associated transactions also. You may want to migrate transaction under another item before proceeding Delete?",
+          onPressed: (buildContext) {
+        _deleteItemFromDb();
+      });
     }
+  }
 
+  void _deleteItemFromDb() async {
     // Case 2: Delete item from database
     int result = await this.databaseHelper.deleteItem(this.item.id);
 
     if (result != 0) {
       // Success
+      if (widget.forEdit ?? false) {
+        WindowUtils.moveToLastScreen(context, modified: true);
+      }
+
+      refreshItemMapCache();
+      this.clearFieldsAndItem();
       WindowUtils.showAlertDialog(
           this.context, 'Status', 'Item deleted successfully');
     } else {
@@ -304,5 +321,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       WindowUtils.showAlertDialog(
           this.context, 'Status', 'Problem deleting item, try again!');
     }
+  }
+
+  void refreshItemMapCache() async {
+    // refresh item map cache since item is changed.
+    Map newItemMap = await StartupCache(reload: true).itemMap;
   }
 }
