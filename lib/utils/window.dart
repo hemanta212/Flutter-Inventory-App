@@ -40,7 +40,7 @@ class WindowUtils {
       builder: (BuildContext context) {
         return AlertDialog(
           title: new Text(
-            title,
+             title,
           ),
           content: Padding(
             padding: const EdgeInsets.all(8.0),

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:bk_app/utils/dbhelper.dart';
-import 'package:intl/intl.dart';
 
 class StartupCache {
   static StartupCache _startupCache; // Singleton dbHelper
