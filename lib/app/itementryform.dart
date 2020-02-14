@@ -40,6 +40,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   TextEditingController itemNickNameController = TextEditingController();
   TextEditingController markedPriceController = TextEditingController();
   TextEditingController totalStockController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
 
   @override
   void initState() {
@@ -95,7 +96,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                     // Item name
                     WindowUtils.genTextField(
                         labelText: "Item name",
-                        hintText: "Name of item you sold",
+                        hintText: "Name of the new item",
                         textStyle: textStyle,
                         controller: this.itemNameController,
                         onChanged: () {
@@ -114,6 +115,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                     // Nick name
                     WindowUtils.genTextField(
                         labelText: "Nick name (id)",
+                        hintText: "Short & unique [optional]",
                         textStyle: textStyle,
                         controller: this.itemNickNameController,
                         onChanged: () {
@@ -159,6 +161,21 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                       1 box = 15 items
                       1 cartoon = 5 box
                     */
+
+                    // Item Description
+                    WindowUtils.genTextField(
+                        labelText: "Description",
+                        hintText:
+                            "Any notes for this item \nLike its location, wholeseller\nor anything you'd like to remember",
+                        textStyle: textStyle,
+                        maxLines: 3,
+                        controller: this.descriptionController,
+                        validator: (value, labelText) {},
+                        onChanged: () {
+                          return setState(() {
+                            this.updateItemDescription();
+                          });
+                        }),
 
                     // save
                     Padding(
@@ -212,6 +229,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void updateMarkedPrice() {
     this.item.markedPrice = double.parse(this.markedPriceController.text);
+  }
+
+  void updateItemDescription() {
+    this.item.description = this.descriptionController.text;
   }
 
   void updateItemNickName() {
@@ -325,6 +346,6 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void refreshItemMapCache() async {
     // refresh item map cache since item is changed.
-    Map newItemMap = await StartupCache(reload: true).itemMap;
+    await StartupCache(reload: true).itemMap;
   }
 }

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
-import 'package:bk_app/app/transactionoverview.dart';
-import 'package:bk_app/app/testi.dart';
+import 'package:bk_app/app/salesOverview.dart';
 import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/scaffold.dart';
@@ -208,7 +207,7 @@ class TransactionListState extends State<TransactionList> {
     } catch (e) {
       debugPrint("Profita calc error $e");
     }
-    PopDialog.genDialog(context, overViewMap);
+    SalesOverview.showTransactions(context, overViewMap);
   }
 
   String _simplifyDateString(String date) {

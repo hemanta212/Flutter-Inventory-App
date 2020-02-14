@@ -33,6 +33,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   String formName;
   String _currentFormSelected;
   DbHelper databaseHelper = DbHelper();
+  Map itemMapCache;
+  List<Map> itemsAndNicknames;
 
   String disclaimerText = '';
   String stringUnderName = '';
@@ -47,6 +49,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     super.initState();
     this.formName = _forms[0];
     _currentFormSelected = this.formName;
+    _initializeItemMapCache();
     _initiateTransactionData();
   }
 
@@ -115,16 +118,17 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                     ),
 
                     // Item name
-                    WindowUtils.genTextField(
+                    WindowUtils.genAutocompleteTextField(
                         labelText: "Item name",
-                        hintText: "Name of item you sold",
+                        hintText: "Name of item sold",
                         textStyle: textStyle,
-                        controller: this.itemNameController,
+                        controller: itemNameController,
                         onChanged: () {
                           return setState(() {
                             this.updateItemName();
                           });
-                        }),
+                        },
+                        suggestions: this.itemsAndNicknames),
 
                     Visibility(
                       visible: stringUnderName.isNotEmpty,
@@ -135,7 +139,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
                     // No of items
                     WindowUtils.genTextField(
-                        labelText: "No of items",
+                        labelText: "Quantity",
+                        hintText: "No of items sold",
                         textStyle: textStyle,
                         controller: this.itemNumberController,
                         keyboardType: TextInputType.number,
@@ -143,7 +148,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
                     // Selling price
                     WindowUtils.genTextField(
-                      labelText: "Selling price",
+                      labelText: "Total selling price",
                       textStyle: textStyle,
                       controller: this.sellingPriceController,
                       keyboardType: TextInputType.number,
@@ -191,6 +196,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       } else {
         this.stringUnderName = '';
         this.tempItemId = item.id;
+        this.sellingPriceController.text =
+            FormUtils.fmtToIntIfPossible(item.markedPrice);
       }
     }, onError: (e) {
       debugPrint('UpdateitemName Error::  $e');
@@ -239,7 +246,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       double netAddition = items - this.transaction.items;
       if (item.totalStock < netAddition) {
         WindowUtils.showAlertDialog(
-            context, "Failed!", "Empty stock. Cannot sell.");
+            context, "Failed!", "Empty or insufficient stock.\nCannot sell.");
         return;
       } else {
         item.decreaseStock(netAddition);
@@ -303,8 +310,20 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   }
 
   void refreshItemTransactionMapCache() async {
-    // refresh item map cache since item is changed.
-    Map newItemTransactionMap =
-        await StartupCache(reload: true).itemTransactionMap;
+    // refresh item transaction map cache since transaction is changed.
+    await StartupCache(reload: true).itemTransactionMap;
+  }
+
+  void _initializeItemMapCache() async {
+    Map itemMap = await StartupCache().itemMap;
+    List<Map> cacheItemAndNickNames = List<Map>();
+    itemMap.forEach((key, value) {
+      Map nameNickNameMap = {'name': value.first, 'nickName': value.last};
+      cacheItemAndNickNames.add(nameNickNameMap);
+    });
+    debugPrint("Ok list of items and nicKnames $cacheItemAndNickNames");
+    setState(() {
+      this.itemsAndNicknames = cacheItemAndNickNames;
+    });
   }
 }

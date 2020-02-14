@@ -6,7 +6,6 @@ class Item {
   double _costPrice;
   double _markedPrice;
   double _totalStock = 0.0;
-  Map<String, dynamic> _costPricesMap = Map();
 
   Item(this._name,
       [this._nickName, this._costPrice, this._markedPrice, this._description

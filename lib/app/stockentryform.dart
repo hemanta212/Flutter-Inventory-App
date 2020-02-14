@@ -37,6 +37,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
   String stringUnderName = '';
   String _currentFormSelected;
   int tempItemId;
+  List<Map> itemNamesAndNicknames;
 
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNumberController = TextEditingController();
@@ -48,6 +49,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
     super.initState();
     this.formName = _forms[1];
     this._currentFormSelected = formName;
+    _initializeItemNamesAndNicknamesMapCache();
     _initiateTransactionData();
   }
 
@@ -118,17 +120,17 @@ class _StockEntryFormState extends State<StockEntryForm> {
                     ),
 
                     // Item name
-                    WindowUtils.genTextField(
-                      labelText: "Item name",
-                      hintText: "Name of item you sold",
-                      textStyle: textStyle,
-                      controller: this.itemNameController,
-                      onChanged: () {
-                        return setState(() {
-                          this.updateItemName();
-                        });
-                      },
-                    ),
+                    WindowUtils.genAutocompleteTextField(
+                        labelText: "Item name",
+                        hintText: "Name of item you bought",
+                        textStyle: textStyle,
+                        controller: itemNameController,
+                        onChanged: () {
+                          return setState(() {
+                            this.updateItemName();
+                          });
+                        },
+                        suggestions: this.itemNamesAndNicknames),
 
                     Visibility(
                       visible: stringUnderName.isNotEmpty,
@@ -139,7 +141,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
                     // No of items
                     WindowUtils.genTextField(
-                      labelText: "No of items",
+                      labelText: "Quantity",
+                      hintText: "No of items",
                       textStyle: textStyle,
                       controller: this.itemNumberController,
                       keyboardType: TextInputType.number,
@@ -164,6 +167,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
                     // Marked price
                     WindowUtils.genTextField(
                       labelText: "Expected selling price",
+                      hintText: "Price per item",
                       textStyle: textStyle,
                       controller: this.markedPriceController,
                       keyboardType: TextInputType.number,
@@ -308,8 +312,22 @@ class _StockEntryFormState extends State<StockEntryForm> {
   }
 
   void refreshItemTransactionMapCache() async {
-    // refresh item map cache since item is changed.
-    Map newItemTransactionMap =
-        await StartupCache(reload: true).itemTransactionMap;
+    // refresh item transaction map cache since transaction is changed.
+    await StartupCache(reload: true).itemTransactionMap;
+  }
+
+  void _initializeItemNamesAndNicknamesMapCache() {
+    Future<Map> futureItemMap = StartupCache().itemMap;
+    List<Map> cacheItemAndNickNames = List<Map>();
+    futureItemMap.then((Map itemMap) {
+      itemMap.forEach((key, value) {
+        Map nameNickNameMap = {'name': value.first, 'nickName': value.last};
+        cacheItemAndNickNames.add(nameNickNameMap);
+      });
+      debugPrint("Ok list of items and nicKnames $cacheItemAndNickNames");
+      setState(() {
+        this.itemNamesAndNicknames = cacheItemAndNickNames;
+      });
+    });
   }
 }
