@@ -29,6 +29,7 @@ class DbHelper {
   String col2Description = 'description';
   String col2Amount = 'amount';
   String col2CostPrice = 'cost_price';
+  String col2DueAmount = 'due_amount';
   String col2Type = 'type';
   String col2Date = 'date';
   String col2Items = 'items';
@@ -83,7 +84,8 @@ class DbHelper {
         "$col2Date TEXT,"
         "$col2Amount REAL,"
         "$col2CostPrice REAL,"
-        "$col2Items REAL"
+        "$col2Items REAL,"
+        "$col2DueAmount REAL"
         ")");
   }
 

@@ -5,6 +5,17 @@ import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
 
 class WindowUtils {
+  static Widget getCard(String label, {color = Colors.white}) {
+    return Expanded(
+        child: Card(
+            color: color,
+            elevation: 5.0,
+            child: Center(
+              heightFactor: 2,
+              child: Text(label),
+            )));
+  }
+
   static void dropDownItemSelected(BuildContext context,
       {String caller, String target}) async {
     Map _stringToForm = {
@@ -69,6 +80,16 @@ class WindowUtils {
     );
   }
 
+  static Widget genButton(BuildContext context, String name, var onPressed) {
+    return Expanded(
+        child: RaisedButton(
+            color: Theme.of(context).accentColor,
+            textColor: Colors.white, // Theme.of(context).primaryColorLight,
+            child: Text(name, textScaleFactor: 1.5),
+            onPressed: onPressed) // RaisedButton Calculate
+        ); //Expanded
+  }
+
   static String formValidator(String value, String labelText) {
     if (value.isEmpty) {
       return "Please enter $labelText";
@@ -122,8 +143,8 @@ class WindowUtils {
       List<Map> suggestions,
       bool enabled,
       var validator = formValidator,
-      var onChanged}) {
-    debugPrint("got suggestions $suggestions");
+      var onChanged,
+      var getSuggestions}) {
     return TypeAheadFormField(
       textFieldConfiguration: TextFieldConfiguration(
         enabled: enabled,
@@ -142,31 +163,10 @@ class WindowUtils {
         return validator(value, labelText);
       },
       suggestionsCallback: (givenString) {
-        return suggestions?.where((Map map) {
-              String itemName = map['name'].toLowerCase();
-              String itemNickName = map['nickName']?.toLowerCase() ?? '';
-
-              // Take the user given string and construct a simple regexPattern to do fuzzy search
-              // Word like "zam" will be turned ".*z.*a.*m.*" its matching on name & nickname is done.
-              List<String> strsWithWildCards = "$givenString"
-                  .split("")
-                  .map((letter) => ".*$letter")
-                  .toList(); // Makes "zam" -> ".*z.*a.*m"
-              strsWithWildCards.add('.*'); // ".*z.*a.*m" -> ".*z.*a.*m.*"
-              String regexPattern = strsWithWildCards.join('');
-              regexPattern = regexPattern.replaceAll(r"\", r"\\");
-              debugPrint("escaped regexPattern $regexPattern");
-
-              RegExp regExp = new RegExp(
-                "$regexPattern",
-                caseSensitive: false,
-                multiLine: false,
-              );
-
-              return regExp.hasMatch("$itemName") ||
-                  regExp.hasMatch("$itemNickName");
-            }) ??
-            suggestions;
+        if (suggestions.isEmpty) {
+          suggestions = getSuggestions();
+        }
+        return _genFuzzySuggestions(givenString, suggestions);
       },
       itemBuilder: (context, suggestion) {
         return Container(
@@ -192,13 +192,34 @@ class WindowUtils {
     );
   }
 
-  static Widget genButton(BuildContext context, String name, var onPressed) {
-    return Expanded(
-        child: RaisedButton(
-            color: Theme.of(context).accentColor,
-            textColor: Colors.white, // Theme.of(context).primaryColorLight,
-            child: Text(name, textScaleFactor: 1.5),
-            onPressed: onPressed) // RaisedButton Calculate
-        ); //Expanded
+  static List _genFuzzySuggestions(String sampleString, List sourceList) {
+    if (sourceList.isEmpty) {
+      return sourceList;
+    }
+    return sourceList.where((map) {
+      String itemName = map['name'].toLowerCase();
+      String itemNickName = map['nickName']?.toLowerCase() ?? '';
+
+      // Takes: user given string | constructs -> regexPattern
+      // e.g: "zam" -> ".*z.*a.*m.*"
+      List<String> strsWithWildCards = "$sampleString"
+          .split("")
+          .map((letter) => ".*$letter")
+          .toList(); // Makes "zam" -> ".*z.*a.*m"
+      strsWithWildCards.add('.*'); // ".*z.*a.*m" -> ".*z.*a.*m.*"
+      String regexPattern = strsWithWildCards.join('');
+
+      // \ escape char is replaced by \\ to simulate raw string.
+      regexPattern = regexPattern.replaceAll(r"\", r"\\");
+      debugPrint("escaped regexPattern $regexPattern");
+
+      RegExp regExp = new RegExp(
+        "$regexPattern",
+        caseSensitive: false,
+        multiLine: false,
+      );
+
+      return regExp.hasMatch("$itemName") || regExp.hasMatch("$itemNickName");
+    }).toList();
   }
 }

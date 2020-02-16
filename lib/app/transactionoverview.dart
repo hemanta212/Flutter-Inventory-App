@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:bk_app/utils/window.dart';
+
 class TransactionOverview extends StatefulWidget {
   final Map salesTransactionInfo;
 
@@ -23,6 +25,7 @@ class TransactionOverviewState extends State<TransactionOverview> {
   void initState() {
     super.initState();
     overViewMap = this.salesTransactionInfo;
+    debugPrint("overview map $this.overViewMap");
     overViewMap.removeWhere((key, value) {
       if (!['Name', 'Profit', 'Item'].contains(key)) {
         return true;
@@ -30,6 +33,11 @@ class TransactionOverviewState extends State<TransactionOverview> {
         return false;
       }
     });
+    if (overViewMap.isEmpty) {
+      WindowUtils.showAlertDialog(
+          context, "Failed!", "Sales history is empty!");
+      WindowUtils.moveToLastScreen(context);
+    }
   }
 
   @override
@@ -61,31 +69,29 @@ class TransactionOverviewState extends State<TransactionOverview> {
     List<DataRow> dataRows = List();
     List rowCells = List();
     int rowLength;
-    int order = 0;
 
+    debugPrint("yes i = 0");
     this.overViewMap.forEach((key, value) {
       rowLength = value.length;
       for (int i = 0; i < rowLength; i++) {
-        if (order == 0) {
-          rowCells.add([
-            DataCell(Container(
-                width: 150, child: Text("${value[i]}", softWrap: true)))
-          ]);
+        if (i == 0) {
+          rowCells.add(
+              [DataCell(Container(width: 150, child: Text("${value[i]}k")))]);
         } else {
           rowCells[i].add(DataCell(Text("${value[i]}", style: this.nameStyle)));
         }
       }
-      order += 1;
     });
 
     rowCells.forEach((row) {
       dataRows.add(DataRow(cells: row));
     });
 
-    return dataRows; //_sortDataRows(dataRows);
+    return dataRows;
   }
 
   List<DataColumn> getDataColumns() {
+    debugPrint("getting data columns");
     List<DataColumn> dataCols = List();
     this.overViewMap.forEach((key, value) {
       dataCols.add(DataColumn(label: Text(key)));
@@ -100,22 +106,6 @@ class TransactionOverviewState extends State<TransactionOverview> {
         this._getCard("${this._calculateProfit()}"),
       ],
     );
-  }
-
-  List<DataRow> _sortDataRows(List<DataRow> dataRows) {
-    dataRows.sort((DataRow first, DataRow second) {
-      DateTime firstDate = _getDateTimeFromDataRow(first);
-      DateTime secondDate = _getDateTimeFromDataRow(second);
-      return firstDate.compareTo(secondDate);
-    });
-    return dataRows;
-  }
-
-  DateTime _getDateTimeFromDataRow(DataRow row) {
-    String rawDate = row.cells.last.child.toString();
-    String strDate = rawDate.split("\"")[1];
-    DateTime date = DateFormat.jm().parseLoose(strDate);
-    return date;
   }
 
   double _calculateProfit() {

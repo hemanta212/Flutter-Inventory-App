@@ -16,6 +16,10 @@ class FormUtils {
     }
   }
 
+  static double getShortDouble(double value, {round = 2}) {
+    return double.parse(value.toStringAsFixed(round));
+  }
+
   static Future<bool> saveTransactionAndUpdateItem(transaction, item) async {
     var success = false;
     Database db = await DbHelper().database;
@@ -25,7 +29,7 @@ class FormUtils {
       batch.update('item_table', item.toMap(),
           where: 'id = ?', whereArgs: [item.id]);
       if (transaction.id == null) {
-        transaction.date = DateFormat.yMMMd().add_Hms().format(DateTime.now());
+        transaction.date = DateFormat.yMMMd().add_jms().format(DateTime.now());
 
         batch.insert('transaction_table', transaction.toMap());
       } else {

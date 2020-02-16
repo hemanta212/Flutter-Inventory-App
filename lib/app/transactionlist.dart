@@ -7,9 +7,9 @@ import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
+import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/blocs/database_bloc.dart';
-import 'package:intl/intl.dart';
 
 class TransactionList extends StatefulWidget {
   @override
@@ -21,8 +21,7 @@ class TransactionList extends StatefulWidget {
 class TransactionListState extends State<TransactionList> {
   DbHelper databaseHelper = DbHelper();
   final bloc = TransactionBloc();
-  Map itemMapCache;
-  Map itemTransactionMapCache;
+  Map itemMapCache = Map();
 
   @override
   void dispose() {
@@ -34,7 +33,6 @@ class TransactionListState extends State<TransactionList> {
   void initState() {
     super.initState();
     _initializeItemMapCache();
-    _initializeItemTransactionMapCache();
   }
 
   @override
@@ -117,26 +115,14 @@ class TransactionListState extends State<TransactionList> {
     });
   }
 
-  void _initializeItemMapCache() {
-    Future<Map> futureItemMap = StartupCache().itemMap;
-    futureItemMap.then((map) {
-      debugPrint("Transaction list: item map reloaded $map");
-      this.itemMapCache = map;
-    });
-  }
-
-  void _initializeItemTransactionMapCache() {
-    Future<Map> futureItemTransactionMap = StartupCache().itemTransactionMap;
-    futureItemTransactionMap.then((map) {
-      debugPrint("Transaction list: item transaction map reloaded $map");
-      this.itemTransactionMapCache = map;
-    });
+  void _initializeItemMapCache() async {
+    this.itemMapCache = await StartupCache().itemMap;
   }
 
   String getDescription(ItemTransaction transaction) {
-    if (this.itemMapCache == null) {
+    if (this.itemMapCache.isEmpty) {
       _initializeItemMapCache();
-      debugPrint("item cache still null");
+      debugPrint("item cache still empty");
       return transaction.description;
     }
 
@@ -146,41 +132,50 @@ class TransactionListState extends State<TransactionList> {
     String itemName = infoList?.first ?? 'N/A';
     String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
     String amount = FormUtils.fmtToIntIfPossible(transaction.amount);
-    transaction.description = "$action: $itemNo $itemName \nAmount: $amount";
-    return transaction.description; //transaction.description;
+    return "$action: $itemNo $itemName \nAmount: $amount";
   }
 
   void _showTransactionProfit() async {
     Map itemTransactionMap = await StartupCache().itemTransactionMap;
-    Map soldTransactions = Map();
+    Map salesTransactions = Map();
+
+    // transactions of type = 0 means outgoing(sales) and 1 means incoming(stockentry)
     itemTransactionMap.forEach((transactionId, value) {
-      if (value['type'] == 0) soldTransactions[transactionId] = value;
+      if (value['type'] == 0) salesTransactions[transactionId] = value;
     });
+
+    if (salesTransactions.isEmpty) {
+      WindowUtils.showAlertDialog(
+          context, "Failed!", "Sales history is empty!");
+      return;
+    }
+
     List<String> names = List();
     List<int> items = List();
     List<double> costPrices = List();
     List<double> sellingPrices = List();
     List<double> profits = List();
+    List<double> dueAmounts = List();
     List<String> dates = List();
 
     Map overViewMap = Map();
 
     try {
-      soldTransactions.forEach((key, value) {
+      salesTransactions.forEach((key, value) {
         int itemId = value['itemId'];
         String name;
         try {
           name = this.itemMapCache[itemId][0];
         } catch (e) {
-          // name = 'N/A';
           return;
         }
         int noOfItems = value['items'].toInt();
-        double costPrice = this._getShortDouble(value['costPrice']);
-        double sellingPrice = this._getShortDouble(value['amount']);
-        String date = this._simplifyDateString(value['date']);
-        double rawProfit = noOfItems * sellingPrice - noOfItems * costPrice;
-        double profit = this._getShortDouble(rawProfit);
+        double costPrice = FormUtils.getShortDouble(value['costPrice']);
+        double dueAmount = FormUtils.getShortDouble(value['dueAmount'] ?? 0.0);
+        double sellingPrice = FormUtils.getShortDouble(value['amount']);
+        String date = value['date'];
+        double _profit = noOfItems * sellingPrice - noOfItems * costPrice;
+        double profit = FormUtils.getShortDouble(_profit);
 
         names.add(name);
         items.add(noOfItems);
@@ -188,6 +183,7 @@ class TransactionListState extends State<TransactionList> {
         sellingPrices.add(sellingPrice);
         dates.add(date);
         profits.add(profit);
+        dueAmounts.add(dueAmount);
       });
 
       overViewMap = {
@@ -196,27 +192,13 @@ class TransactionListState extends State<TransactionList> {
         'CP': costPrices,
         'SP': sellingPrices,
         'Profit': profits,
+        'DueAmount': dueAmounts,
         'Date': dates
       };
       debugPrint("sending overview map $overViewMap");
-      /*
-      await Navigator.push(context, MaterialPageRoute(builder: (context) {
-        return TransactionOverview(overViewMap);
-      }));
-      */
     } catch (e) {
       debugPrint("Profita calc error $e");
     }
     SalesOverview.showTransactions(context, overViewMap);
-  }
-
-  String _simplifyDateString(String date) {
-    DateTime value = DateFormat().parseLoose(date);
-    String newValue = DateFormat.jm().format(value);
-    return newValue;
-  }
-
-  double _getShortDouble(double value) {
-    return double.parse(value.toStringAsFixed(2));
   }
 }

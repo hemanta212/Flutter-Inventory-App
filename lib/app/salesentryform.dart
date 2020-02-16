@@ -12,8 +12,12 @@ class SalesEntryForm extends StatefulWidget {
   final String title;
   final ItemTransaction transaction;
   final bool forEdit;
+  // When an item is right swiped from itemList a quick sales form is presented
+  // This form obiously shouldNot have itemName field so the itemList will pass
+  // the name of item to this form
+  final Item swipeData;
 
-  SalesEntryForm({this.title, this.transaction, this.forEdit});
+  SalesEntryForm({this.title, this.transaction, this.forEdit, this.swipeData});
 
   @override
   State<StatefulWidget> createState() {
@@ -33,23 +37,25 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   String formName;
   String _currentFormSelected;
   DbHelper databaseHelper = DbHelper();
-  Map itemMapCache;
-  List<Map> itemsAndNicknames;
+  List<Map> itemNamesAndNicknames = List<Map>();
 
   String disclaimerText = '';
   String stringUnderName = '';
   int tempItemId;
+  bool enableAdvancedFields = false;
 
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNumberController = TextEditingController();
   TextEditingController sellingPriceController = TextEditingController();
+  TextEditingController duePriceController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     this.formName = _forms[0];
     _currentFormSelected = this.formName;
-    _initializeItemMapCache();
+    _initializeItemNamesAndNicknamesMapCache();
     _initiateTransactionData();
   }
 
@@ -78,8 +84,19 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
           debugPrint("hi this item is $item");
           this.tempItemId = this.transaction.itemId;
           this.itemNameController.text = '${item.name}';
+          this.descriptionController.text = transaction.description ?? '';
+          this.duePriceController.text =
+              FormUtils.fmtToIntIfPossible(this.transaction.dueAmount);
+          if (this.descriptionController.text.isNotEmpty ||
+              this.duePriceController.text.isNotEmpty) {
+            this.enableAdvancedFields = true;
+          }
         }
       });
+    }
+
+    if (this.widget.swipeData != null) {
+      this.tempItemId = this.widget.swipeData.id;
     }
   }
 
@@ -118,17 +135,21 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                     ),
 
                     // Item name
-                    WindowUtils.genAutocompleteTextField(
-                        labelText: "Item name",
-                        hintText: "Name of item sold",
-                        textStyle: textStyle,
-                        controller: itemNameController,
-                        onChanged: () {
-                          return setState(() {
-                            this.updateItemName();
-                          });
-                        },
-                        suggestions: this.itemsAndNicknames),
+                    Visibility(
+                      visible: this.widget.swipeData == null ? true : false,
+                      child: WindowUtils.genAutocompleteTextField(
+                          labelText: "Item name",
+                          hintText: "Name of item sold",
+                          textStyle: textStyle,
+                          controller: itemNameController,
+                          getSuggestions: this._getAutoCompleteSuggestions,
+                          onChanged: () {
+                            return setState(() {
+                              this.updateItemName();
+                            });
+                          },
+                          suggestions: this.itemNamesAndNicknames),
+                    ),
 
                     Visibility(
                       visible: stringUnderName.isNotEmpty,
@@ -154,6 +175,49 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                       keyboardType: TextInputType.number,
                       onChanged: this.updateSellingPrice,
                     ),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Checkbox(
+                            onChanged: (value) {
+                              setState(() => this.enableAdvancedFields = value);
+                            },
+                            value: this.enableAdvancedFields),
+                        Text(
+                          "Show advanced fields",
+                          style: textStyle,
+                        ),
+                      ],
+                    ),
+
+                    // Unpaid price
+                    Visibility(
+                        visible: this.enableAdvancedFields,
+                        child: WindowUtils.genTextField(
+                            labelText: "Unpaid amount",
+                            hintText: "Amount remaining to be collected",
+                            textStyle: textStyle,
+                            controller: this.duePriceController,
+                            keyboardType: TextInputType.number,
+                            onChanged: this.updateDuePrice,
+                            validator: (value, labelText) {})),
+
+                    // Description
+                    Visibility(
+                        visible: this.enableAdvancedFields,
+                        child: WindowUtils.genTextField(
+                            labelText: "Description",
+                            hintText: "Any notes for this transaction",
+                            textStyle: textStyle,
+                            maxLines: 3,
+                            controller: this.descriptionController,
+                            validator: (value, labelText) {},
+                            onChanged: () {
+                              return setState(() {
+                                this.updateTransactionDescription();
+                              });
+                            })),
 
                     // save
                     Padding(
@@ -186,6 +250,15 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
         double.parse(this.sellingPriceController.text).abs();
   }
 
+  void updateDuePrice() {
+    this.transaction.dueAmount =
+        double.parse(this.duePriceController.text).abs();
+  }
+
+  void updateTransactionDescription() {
+    this.transaction.description = this.descriptionController.text;
+  }
+
   void updateItemName() {
     var name = this.itemNameController.text;
     Future<Item> itemFuture = this.databaseHelper.getItem("name", name);
@@ -196,8 +269,6 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       } else {
         this.stringUnderName = '';
         this.tempItemId = item.id;
-        this.sellingPriceController.text =
-            FormUtils.fmtToIntIfPossible(item.markedPrice);
       }
     }, onError: (e) {
       debugPrint('UpdateitemName Error::  $e');
@@ -208,6 +279,9 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.itemNameController.text = '';
     this.itemNumberController.text = '';
     this.sellingPriceController.text = '';
+    this.descriptionController.text = '';
+    this.duePriceController.text = '';
+    this.enableAdvancedFields = false;
     this.transaction = ItemTransaction(0, null, 0.0, 0.0, '');
   }
 
@@ -256,10 +330,6 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.transaction.itemId = item.id;
     this.transaction.items = items;
     this.transaction.costPrice = item.costPrice;
-    String itemNo = FormUtils.fmtToIntIfPossible(this.transaction.items);
-    String amount = FormUtils.fmtToIntIfPossible(this.transaction.amount);
-    this.transaction.description =
-        "Sold: $itemNo ${item.name} \nAmount: $amount";
 
     bool success =
         await FormUtils.saveTransactionAndUpdateItem(this.transaction, item);
@@ -314,16 +384,24 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     await StartupCache(reload: true).itemTransactionMap;
   }
 
-  void _initializeItemMapCache() async {
+  void _initializeItemNamesAndNicknamesMapCache() async {
     Map itemMap = await StartupCache().itemMap;
     List<Map> cacheItemAndNickNames = List<Map>();
-    itemMap.forEach((key, value) {
-      Map nameNickNameMap = {'name': value.first, 'nickName': value.last};
-      cacheItemAndNickNames.add(nameNickNameMap);
-    });
+    if (itemMap.isNotEmpty) {
+      itemMap.forEach((key, value) {
+        Map nameNickNameMap = {'name': value.first, 'nickName': value.last};
+        cacheItemAndNickNames.add(nameNickNameMap);
+      });
+    }
     debugPrint("Ok list of items and nicKnames $cacheItemAndNickNames");
     setState(() {
-      this.itemsAndNicknames = cacheItemAndNickNames;
+      this.itemNamesAndNicknames = cacheItemAndNickNames;
     });
+  }
+
+  List<Map> _getAutoCompleteSuggestions() {
+    // A way for autocomplete generator to access the itemNamesAndNicknames proprety of this class
+    // Sometimes at the start of program empty suggestions gets passed and there is no way to update that.
+    return this.itemNamesAndNicknames;
   }
 }

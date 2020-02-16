@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'package:bk_app/utils/dbhelper.dart';
 
@@ -42,7 +43,7 @@ class StartupCache {
     Map itemMap = Map();
     List<Map> fullItemMap = await databaseHelper.getItemMapList();
     if (fullItemMap.isEmpty) {
-      return null;
+      return itemMap;
     }
     fullItemMap.forEach((Map map) {
       itemMap[map['id']] = [map['name'], map['nick_name']];
@@ -59,19 +60,33 @@ class StartupCache {
         await databaseHelper.getItemTransactionMapList();
 
     if (fullItemTransactionMap.isEmpty) {
-      return null;
+      return itemTransactionMap;
     }
     fullItemTransactionMap.forEach((Map map) {
+      String date = map['date'];
+      if (_isNotOfToday(date)) {
+        return;
+      }
       itemTransactionMap[map['id']] = {
         'type': map['type'],
         'itemId': map['item_id'],
         'amount': map['amount'] / map['items'],
         'costPrice': map['cost_price'],
+        'dueAmount': map['due_amount'],
         'items': map['items'],
-        'date': map['date']
+        'date': map['date'],
+        'description': map['description']
       };
     });
     debugPrint("Cached transaction cache $itemTransactionMap");
     return itemTransactionMap;
+  }
+
+  static bool _isNotOfToday(String date) {
+    DateTime givenDate = DateFormat.yMMMd().add_jms().parse(date);
+    DateTime current = DateTime.now();
+    return givenDate.year != current.year ||
+        givenDate.month != current.month ||
+        givenDate.day != current.day;
   }
 }

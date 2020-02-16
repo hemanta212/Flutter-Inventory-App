@@ -64,6 +64,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
         this.totalStockController.text =
             FormUtils.fmtToIntIfPossible(this.item.totalStock);
       }
+      this.descriptionController.text = this.item.description ?? '';
     }
   }
 

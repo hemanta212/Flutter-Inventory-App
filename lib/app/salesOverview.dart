@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:bk_app/utils/window.dart';
+import 'package:bk_app/utils/form.dart';
+import 'package:bk_app/utils/cache.dart';
+
 class SalesOverview {
   static Map salesTransactionInfo;
   static Map overViewMap;
   static TextStyle nameStyle;
+  static BuildContext context;
 
-  static void showTransactions(context, infoMap) async {
+  static void showTransactions(appContext, infoMap) async {
+    context = appContext;
     nameStyle = Theme.of(context).textTheme.subhead;
     salesTransactionInfo = infoMap;
-    overViewMap = infoMap;
+    debugPrint("sales transaction info recieved $infoMap");
+    overViewMap = Map()..addAll(salesTransactionInfo);
     overViewMap.removeWhere((key, value) {
       if (!['Name', 'Profit', 'Item'].contains(key)) {
         return true;
@@ -22,12 +29,13 @@ class SalesOverview {
         context: context,
         builder: (BuildContext context) {
           return SimpleDialog(
+            contentPadding: EdgeInsets.zero,
             children: <Widget>[getTransactionOverview(overViewMap)],
           );
         });
   }
 
-  static Widget getTransactionOverview(overViewMap) {
+  static Widget getTransactionOverview(Map overViewMap) {
     return Column(
       children: [
         SingleChildScrollView(
@@ -36,7 +44,7 @@ class SalesOverview {
                 columnSpacing: 1.0,
                 columns: getDataColumns(overViewMap),
                 rows: getDataRows(overViewMap))),
-        displayProfit(),
+        displayProfitAndDueAmount(),
       ],
     );
   }
@@ -52,18 +60,23 @@ class SalesOverview {
       for (int i = 0; i < rowLength; i++) {
         if (order == 0) {
           rowCells.add([
-            DataCell(Container(
-                width: 100, child: Text("${value[i]}", softWrap: true)))
+            DataCell(
+              Container(width: 100, child: Text("${value[i]}")),
+              onTap: () => _showTransactionInfoDialog(i),
+            )
           ]);
         } else {
-          rowCells[i].add(DataCell(Text("${value[i]}", style: nameStyle)));
+          rowCells[i].add(DataCell(Text("${value[i]}", style: nameStyle),
+              onTap: () => _showTransactionInfoDialog(i)));
         }
       }
       order += 1;
     });
 
     rowCells.forEach((row) {
-      dataRows.add(DataRow(cells: row));
+      dataRows.add(DataRow(
+        cells: row,
+      ));
     });
     return dataRows; //_sortDataRows(dataRows);
   }
@@ -76,13 +89,26 @@ class SalesOverview {
     return dataCols;
   }
 
-  static Widget displayProfit() {
-    return Row(
-      children: <Widget>[
-        getCard("Profit"),
-        getCard("${calculateProfit()}"),
-      ],
-    );
+  static Widget displayProfitAndDueAmount() {
+    return Column(children: <Widget>[
+      Row(
+        children: <Widget>[
+          WindowUtils.getCard("Profit", color: Theme.of(context).cardColor),
+          WindowUtils.getCard("${calculateProfit()}",
+              color: Theme.of(context).cardColor),
+        ],
+      ),
+      Visibility(
+          visible: isEmptyDouble(calculateDueAmount()) ? false : true,
+          child: Row(
+            children: <Widget>[
+              WindowUtils.getCard("Due Amount",
+                  color: Theme.of(context).cardColor),
+              WindowUtils.getCard("${calculateDueAmount()}",
+                  color: Theme.of(context).cardColor),
+            ],
+          )),
+    ]);
   }
 
   static List<DataRow> sortDataRows(List<DataRow> dataRows) {
@@ -103,18 +129,91 @@ class SalesOverview {
 
   static double calculateProfit() {
     List<double> profits = salesTransactionInfo['Profit'];
-    return profits.reduce((first, second) {
+    double total = profits.reduce((first, second) {
       return first + second;
     });
+    return FormUtils.getShortDouble(total);
   }
 
-  static Widget getCard(String label) {
-    return Expanded(
-        child: Card(
-            elevation: 5.0,
-            child: Center(
-              heightFactor: 2,
-              child: Text(label),
-            )));
+  static double calculateDueAmount() {
+    List<double> dueAmounts = salesTransactionInfo['DueAmount'];
+    debugPrint("dudueAmounts $dueAmounts");
+    double total = dueAmounts.reduce((first, second) {
+      return first + second;
+    });
+    return FormUtils.getShortDouble(total);
+  }
+
+  static bool isEmptyDouble(double value) {
+    if (value == 0.0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static void _showTransactionInfoDialog(int index) async {
+    ThemeData itemInfoTheme = Theme.of(context);
+    List<String> dates = salesTransactionInfo['Date'];
+    String transactionDate = dates[index];
+    Map transaction;
+    Map itemTransactionMapCache = await StartupCache().itemTransactionMap;
+    itemTransactionMapCache.forEach((key, value) {
+      if (transactionDate == value['date']) {
+        transaction = value;
+      }
+      debugPrint("got transaction $transaction");
+    });
+
+    await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return SimpleDialog(
+            contentPadding: EdgeInsets.zero,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text("${transaction['date']}",
+                          style: itemInfoTheme.textTheme.subhead),
+                      SizedBox(height: 16.0),
+                      Row(
+                        children: <Widget>[
+                          WindowUtils.getCard("Cost Price"),
+                          WindowUtils.getCard(FormUtils.fmtToIntIfPossible(
+                              FormUtils.getShortDouble(
+                                  transaction['costPrice']))),
+                        ],
+                      ),
+                      Row(
+                        children: <Widget>[
+                          WindowUtils.getCard("Selling Price"),
+                          WindowUtils.getCard(FormUtils.fmtToIntIfPossible(
+                              FormUtils.getShortDouble(transaction['amount']))),
+                        ],
+                      ),
+                      Visibility(
+                          visible: transaction['dueAmount'] == 0.0 ||
+                                  transaction['dueAmount'] == null
+                              ? false
+                              : true,
+                          child: Row(
+                            children: <Widget>[
+                              WindowUtils.getCard("Due Amount"),
+                              WindowUtils.getCard(FormUtils.fmtToIntIfPossible(
+                                  FormUtils.getShortDouble(
+                                      transaction['dueAmount'] ?? 0.0))),
+                            ],
+                          )),
+                      SizedBox(height: 16.0),
+                      Text("${transaction['description'] ?? ''}",
+                          style: itemInfoTheme.textTheme.subhead),
+                    ]),
+              ),
+            ],
+          );
+        });
   }
 }

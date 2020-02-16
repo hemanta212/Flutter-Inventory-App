@@ -37,12 +37,15 @@ class _StockEntryFormState extends State<StockEntryForm> {
   String stringUnderName = '';
   String _currentFormSelected;
   int tempItemId;
-  List<Map> itemNamesAndNicknames;
+  List<Map> itemNamesAndNicknames = List<Map>();
+  bool enableAdvancedFields = false;
 
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNumberController = TextEditingController();
   TextEditingController costPriceController = TextEditingController();
   TextEditingController markedPriceController = TextEditingController();
+  TextEditingController duePriceController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
 
   @override
   void initState() {
@@ -80,6 +83,13 @@ class _StockEntryFormState extends State<StockEntryForm> {
           this.itemNameController.text = '${item.name}';
           this.markedPriceController.text =
               FormUtils.fmtToIntIfPossible(item.markedPrice);
+          this.descriptionController.text = this.transaction.description ?? '';
+          this.duePriceController.text =
+              FormUtils.fmtToIntIfPossible(this.transaction.dueAmount);
+          if (this.descriptionController.text.isNotEmpty ||
+              this.duePriceController.text.isNotEmpty) {
+            this.enableAdvancedFields = true;
+          }
         }
       });
     }
@@ -125,6 +135,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
                         hintText: "Name of item you bought",
                         textStyle: textStyle,
                         controller: itemNameController,
+                        getSuggestions: this._getAutoCompleteSuggestions,
                         onChanged: () {
                           return setState(() {
                             this.updateItemName();
@@ -174,6 +185,50 @@ class _StockEntryFormState extends State<StockEntryForm> {
                       onChanged: () {},
                     ),
 
+                    // Checkbox
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Checkbox(
+                            onChanged: (value) {
+                              setState(() => this.enableAdvancedFields = value);
+                            },
+                            value: this.enableAdvancedFields),
+                        Text(
+                          "Show advanced fields",
+                          style: textStyle,
+                        ),
+                      ],
+                    ),
+
+                    // Unpaid price
+                    Visibility(
+                        visible: this.enableAdvancedFields,
+                        child: WindowUtils.genTextField(
+                            labelText: "Unpaid amount",
+                            hintText: "Amount remaining to be collected",
+                            textStyle: textStyle,
+                            controller: this.duePriceController,
+                            keyboardType: TextInputType.number,
+                            onChanged: this.updateDuePrice,
+                            validator: (value, labelText) {})),
+
+                    // Description
+                    Visibility(
+                        visible: this.enableAdvancedFields,
+                        child: WindowUtils.genTextField(
+                            labelText: "Description",
+                            hintText: "Any notes for this transaction",
+                            textStyle: textStyle,
+                            maxLines: 3,
+                            controller: this.descriptionController,
+                            validator: (value, labelText) {},
+                            onChanged: () {
+                              return setState(() {
+                                this.updateTransactionDescription();
+                              });
+                            })),
+
                     // save
                     Padding(
                         padding: EdgeInsets.only(
@@ -221,11 +276,23 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.transaction.amount = double.parse(this.costPriceController.text).abs();
   }
 
+  void updateDuePrice() {
+    this.transaction.dueAmount =
+        double.parse(this.duePriceController.text).abs();
+  }
+
+  void updateTransactionDescription() {
+    this.transaction.description = this.descriptionController.text;
+  }
+
   void clearFieldsAndTransaction() {
     this.itemNameController.text = '';
     this.itemNumberController.text = '';
     this.costPriceController.text = '';
     this.markedPriceController.text = '';
+    this.duePriceController.text = '';
+    this.descriptionController.text = '';
+    this.enableAdvancedFields = false;
     this.transaction = ItemTransaction(1, null, 0.0, 0.0, '');
   }
 
@@ -257,10 +324,6 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
     this.transaction.itemId = item.id;
     this.transaction.items = items;
-    String itemNo = FormUtils.fmtToIntIfPossible(this.transaction.items);
-    String amount = FormUtils.fmtToIntIfPossible(this.transaction.amount);
-    this.transaction.description =
-        "Sold: $itemNo ${item.name} \nAmount: $amount";
 
     item.costPrice = this.transaction.amount / items;
     item.markedPrice = double.parse(this.markedPriceController.text).abs();
@@ -316,18 +379,24 @@ class _StockEntryFormState extends State<StockEntryForm> {
     await StartupCache(reload: true).itemTransactionMap;
   }
 
-  void _initializeItemNamesAndNicknamesMapCache() {
-    Future<Map> futureItemMap = StartupCache().itemMap;
+  void _initializeItemNamesAndNicknamesMapCache() async {
+    Map itemMap = await StartupCache().itemMap;
     List<Map> cacheItemAndNickNames = List<Map>();
-    futureItemMap.then((Map itemMap) {
+    if (itemMap.isNotEmpty) {
       itemMap.forEach((key, value) {
         Map nameNickNameMap = {'name': value.first, 'nickName': value.last};
         cacheItemAndNickNames.add(nameNickNameMap);
       });
-      debugPrint("Ok list of items and nicKnames $cacheItemAndNickNames");
-      setState(() {
-        this.itemNamesAndNicknames = cacheItemAndNickNames;
-      });
+    }
+    debugPrint("Ok list of items and nicKnames $cacheItemAndNickNames");
+    setState(() {
+      this.itemNamesAndNicknames = cacheItemAndNickNames;
     });
+  }
+
+  List<Map> _getAutoCompleteSuggestions() {
+    // A way for autocomplete generator to access the itemNamesAndNicknames proprety of this class
+    // Sometimes at the start of program empty suggestions gets passed and there is no way to update that.
+    return this.itemNamesAndNicknames;
   }
 }

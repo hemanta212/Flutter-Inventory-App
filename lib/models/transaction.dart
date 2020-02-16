@@ -4,6 +4,7 @@ class ItemTransaction {
   int _type;
   double _amount;
   double _costPrice;
+  double _dueAmount;
   double _items;
   String _date;
   String _description;
@@ -25,6 +26,8 @@ class ItemTransaction {
   double get amount => _amount;
 
   double get costPrice => _costPrice;
+
+  double get dueAmount => _dueAmount;
 
   String get date => _date;
 
@@ -56,6 +59,10 @@ class ItemTransaction {
     this._costPrice = newCostPrice;
   }
 
+  set dueAmount(double newDueAmount) {
+    this._dueAmount = newDueAmount;
+  }
+
   set items(double newItems) {
     this._items = newItems;
   }
@@ -71,6 +78,7 @@ class ItemTransaction {
     map['item_id'] = _itemId;
     map['type'] = _type;
     map['description'] = _description;
+    map['due_amount'] = _dueAmount;
     map['date'] = _date;
     map['amount'] = _amount;
     map['items'] = _items;
@@ -83,6 +91,7 @@ class ItemTransaction {
     this._id = map['id'];
     this._type = map['type'];
     this._description = map['description'];
+    this._dueAmount = map['due_amount'];
     this._itemId = map['item_id'];
     this._date = map['date'];
     this._amount = map['amount'];
