@@ -85,7 +85,6 @@ class Item {
 
   // Extract item obj from map obj
   Item.fromMapObject(Map<String, dynamic> map) {
-    this._id = map['id'];
     this._description = map['description'];
     this._name = map['name'];
     this._nickName = map['nick_name'];

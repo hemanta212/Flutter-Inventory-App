@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:bk_app/models/item.dart';
-import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/cache.dart';
+import 'package:bk_app/services/crud.dart';
 
 class ItemEntryForm extends StatefulWidget {
   final String title;
   final Item item;
   final bool forEdit;
+  final String itemId;
 
-  ItemEntryForm({this.item, this.title, this.forEdit});
+  ItemEntryForm({this.item, this.title, this.itemId, this.forEdit});
 
   @override
   State<StatefulWidget> createState() {
-    return _ItemEntryFormState(this.item, this.title);
+    return _ItemEntryFormState(this.item, this.itemId, this.title);
   }
 }
 
@@ -23,12 +27,13 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   // Variables
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
-  DbHelper databaseHelper = DbHelper();
+  CrudHelper crudHelper = CrudHelper();
 
   String title;
   Item item;
+  String itemId;
 
-  _ItemEntryFormState(this.item, this.title);
+  _ItemEntryFormState(this.item, this.itemId, this.title);
 
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
   String formName;
@@ -55,7 +60,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       this.item = Item('');
     }
 
-    if (this.item.id != null) {
+    if (this.itemId != null) {
       this.itemNameController.text = '${item.name}';
       this.itemNickNameController.text = '${item.nickName ?? ''}';
       this.markedPriceController.text =
@@ -215,10 +220,11 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   // Update the title of the Item obj
   void updateItemName() {
     String givenName = this.itemNameController.text;
-    Future<Item> duplicate = this.databaseHelper.getItem("name", givenName);
+    Future<DocumentSnapshot> duplicate =
+        this.crudHelper.getItem('name', givenName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
-      if (value != null && this.item.id != value.id) {
+      if (value != null && this.itemId != value.documentID) {
         this.stringUnderName = 'Name already registered';
         this.item.name = '';
       } else {
@@ -238,11 +244,11 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void updateItemNickName() {
     String givenNickName = this.itemNickNameController.text;
-    Future<Item> duplicate =
-        this.databaseHelper.getItem('nick_name', givenNickName);
+    Future<DocumentSnapshot> duplicate =
+        this.crudHelper.getItem('nick_name', givenNickName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
-      if (value != null && this.item.id != value.id) {
+      if (value != null && this.itemId != value.documentID) {
         this.stringUnderNickName = 'Nick name already registered';
       } else {
         this.stringUnderNickName = '';
@@ -266,7 +272,6 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   // Save data to database
   void _save() async {
-    int result;
     String message;
 
     if (this.item.name == '' || this.stringUnderNickName != '') {
@@ -277,24 +282,24 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
     }
 
     try {
-      if (this.item.id != null) {
+      if (this.itemId != null) {
         // Case 1: Update operation
         debugPrint("Updated item");
-        result = await this.databaseHelper.updateItem(this.item);
+        crudHelper.updateItem(this.itemId, this.item);
       } else {
         // Case 2: Insert operation
-        result = await this.databaseHelper.insertItem(this.item);
+        crudHelper.addItem(this.item);
       }
     } catch (e) {
       message = 'Problem saving item, try again!';
     }
 
-    if (message == null && result != 0) {
-      if (widget.forEdit ?? false) {
+    if (message == null) {
+      // Success
+      if (this.widget.forEdit ?? false) {
         WindowUtils.moveToLastScreen(context, modified: true);
       }
 
-      // Success
       this.clearFieldsAndItem();
       message = 'Item saved successfully';
       refreshItemMapCache();
@@ -305,9 +310,9 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   // Delete item data
   void _delete() async {
-    if (this.item.id == null) {
+    if (this.itemId == null) {
       // Case 1: Abandon new item creation
-      if (widget.forEdit ?? false) {
+      if (this.widget.forEdit ?? false) {
         WindowUtils.moveToLastScreen(context, modified: true);
       }
 
@@ -326,23 +331,15 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void _deleteItemFromDb() async {
     // Case 2: Delete item from database
-    int result = await this.databaseHelper.deleteItem(this.item.id);
+    this.crudHelper.deleteItem(this.itemId);
 
-    if (result != 0) {
-      // Success
-      if (widget.forEdit ?? false) {
-        WindowUtils.moveToLastScreen(context, modified: true);
-      }
-
-      refreshItemMapCache();
-      this.clearFieldsAndItem();
-      WindowUtils.showAlertDialog(
-          this.context, 'Status', 'Item deleted successfully');
-    } else {
-      // Failure
-      WindowUtils.showAlertDialog(
-          this.context, 'Status', 'Problem deleting item, try again!');
+    if (this.widget.forEdit ?? false) {
+      WindowUtils.moveToLastScreen(context, modified: true);
     }
+    refreshItemMapCache();
+    this.clearFieldsAndItem();
+    WindowUtils.showAlertDialog(
+        this.context, 'Status', 'Item deleted successfully');
   }
 
   void refreshItemMapCache() async {

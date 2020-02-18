@@ -1,10 +1,10 @@
 class ItemTransaction {
   int _id;
-  int _itemId;
   int _type;
   double _amount;
   double _costPrice;
   double _dueAmount;
+  String _itemId;
   double _items;
   String _date;
   String _description;
@@ -19,7 +19,7 @@ class ItemTransaction {
 
   int get id => _id;
 
-  int get itemId => _itemId;
+  String get itemId => _itemId;
 
   int get type => _type;
 
@@ -35,7 +35,7 @@ class ItemTransaction {
 
   String get description => _description;
 
-  set itemId(int newItemId) {
+  set itemId(String newItemId) {
     this._itemId = newItemId;
   }
 

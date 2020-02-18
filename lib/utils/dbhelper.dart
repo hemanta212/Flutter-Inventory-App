@@ -224,4 +224,23 @@ class DbHelper {
 
     return transactionList;
   }
+
+  /*
+  void _copyDbToSd() async {
+    try {
+      Directory sd = await getExternalStorageDirectory();
+
+      String currentDBPath = DbHelper._database.path;
+      String backupDBPath = "$sd/backup1.db";
+      File currentDB = new File(currentDBPath);
+      File backupDB = new File(backupDBPath);
+
+      if (await currentDB.exists()) {
+        currentDB.copy(backupDB.path);
+      }
+    } catch (e) {
+      debugPrint("error in db backup $e");
+    }
+  }
+  */
 }

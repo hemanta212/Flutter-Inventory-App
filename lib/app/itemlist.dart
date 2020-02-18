@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'package:bk_app/app/itementryform.dart';
@@ -8,7 +9,7 @@ import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/window.dart';
-import 'package:bk_app/blocs/database_bloc.dart';
+import 'package:bk_app/services/crud.dart';
 
 class ItemList extends StatefulWidget {
   @override
@@ -19,12 +20,13 @@ class ItemList extends StatefulWidget {
 
 class ItemListState extends State<ItemList> {
   DbHelper databaseHelper = DbHelper();
-  final bloc = ItemBloc();
+  CrudHelper crudHelper = CrudHelper();
+  Stream<QuerySnapshot> items;
 
   @override
-  void dispose() {
-    bloc.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    this._updateListView();
   }
 
   @override
@@ -45,43 +47,45 @@ class ItemListState extends State<ItemList> {
     );
   }
 
-  StreamBuilder<List<Item>> getItemListView() {
+  Widget getItemListView() {
     ThemeData localTheme = Theme.of(context);
-    return StreamBuilder<List<Item>>(
-      stream: bloc.items,
-      builder: (BuildContext context, AsyncSnapshot<List<Item>> snapshot) {
-        if (snapshot.hasData) {
-          return ListView.builder(
-            itemCount: snapshot.data.length,
-            itemBuilder: (BuildContext context, int index) {
-              Item item = snapshot.data[index];
-              return GestureDetector(
-                  key: Key(item.name),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.keyboard_arrow_right),
+    return StreamBuilder(
+        stream: this.items,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return ListView.builder(
+              itemCount: snapshot.data.documents.length,
+              itemBuilder: (BuildContext context, int index) {
+                Map itemMap = snapshot.data.documents[index].data;
+                Item item = Item.fromMapObject(itemMap);
+                return GestureDetector(
+                    key: Key(item.name),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.red,
+                        child: Icon(Icons.keyboard_arrow_right),
+                      ),
+                      title: _getNameAndPrice(context, item),
+                      subtitle: Text(item.nickName ?? '',
+                          style: localTheme.textTheme.body1),
+                      onTap: () {
+                        this._showItemInfoDialog(item);
+                      },
+                      onLongPress: () {
+                        String itemId =
+                            snapshot.data.documents[index].documentID;
+                        navigateToDetail(item, 'Edit Item', itemId: itemId);
+                      },
                     ),
-                    title: _getNameAndPrice(context, item),
-                    subtitle:
-                        Text(item.nickName, style: localTheme.textTheme.body1),
-                    onTap: () {
-                      this._showItemInfoDialog(item);
-                    },
-                    onLongPress: () {
-                      navigateToDetail(item, 'Edit Item');
-                    },
-                  ),
-                  onHorizontalDragEnd: (DragEndDetails details) {
-                    this._initiateTransaction("Sales Entry", item);
-                  });
-            },
-          );
-        } else {
-          return Center(child: CircularProgressIndicator());
-        }
-      },
-    );
+                    onHorizontalDragEnd: (DragEndDetails details) {
+                      this._initiateTransaction("Sales Entry", item);
+                    });
+              },
+            );
+          } else {
+            return CircularProgressIndicator();
+          }
+        });
   }
 
   void _showItemInfoDialog(Item item) async {
@@ -100,7 +104,7 @@ class ItemListState extends State<ItemList> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Text(item.name, style: itemInfoTheme.textTheme.display1),
-                      Text(item.nickName,
+                      Text(item.nickName ?? '',
                           style: itemInfoTheme.textTheme.subhead.copyWith(
                             fontStyle: FontStyle.italic,
                           )),
@@ -134,14 +138,15 @@ class ItemListState extends State<ItemList> {
         });
   }
 
-  void navigateToDetail(Item item, String name) async {
+  void navigateToDetail(Item item, String name, {itemId}) async {
     bool result =
         await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return ItemEntryForm(title: name, item: item, forEdit: true);
+      return ItemEntryForm(
+          title: name, item: item, itemId: itemId, forEdit: true);
     }));
 
     if (result == true) {
-      updateListView();
+      this._updateListView();
     }
   }
 
@@ -155,9 +160,9 @@ class ItemListState extends State<ItemList> {
         context, MaterialPageRoute(builder: (context) => formMap[formName]));
   }
 
-  void updateListView() {
+  void _updateListView() {
     setState(() {
-      this.bloc.getItems();
+      this.items = crudHelper.getItems();
     });
   }
 

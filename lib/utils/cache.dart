@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:bk_app/services/crud.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -39,43 +41,46 @@ class StartupCache {
 
   Future<Map> initializeItemMap() async {
     debugPrint("Initializing item map cache");
-    var databaseHelper = DbHelper();
+    CrudHelper crudHelper = CrudHelper();
     Map itemMap = Map();
-    List<Map> fullItemMap = await databaseHelper.getItemMapList();
-    if (fullItemMap.isEmpty) {
+    QuerySnapshot itemSnapshot = await crudHelper.getItemQuerySnapshot();
+    if (itemSnapshot.documents.isEmpty) {
       return itemMap;
     }
-    fullItemMap.forEach((Map map) {
-      itemMap[map['id']] = [map['name'], map['nick_name']];
+    itemSnapshot.documents.forEach((document) {
+      itemMap[document.documentID] = [
+        document.data['name'],
+        document.data['nick_name']
+      ];
     });
     debugPrint("Done $itemMap");
     return itemMap;
   }
 
   Future<Map> initializeItemTransactionMap() async {
-    debugPrint("Initializing item map cache");
-    var databaseHelper = DbHelper();
+    debugPrint("Initializing item transaction map cache");
+    CrudHelper crudHelper = CrudHelper();
     Map itemTransactionMap = Map();
-    List<Map> fullItemTransactionMap =
-        await databaseHelper.getItemTransactionMapList();
-
-    if (fullItemTransactionMap.isEmpty) {
-      return itemTransactionMap;
+    QuerySnapshot itemSnapshot =
+        await crudHelper.getItemTransactionQuerySnapshot();
+    if (itemSnapshot.documents.isEmpty) {
+      return itemMap;
     }
-    fullItemTransactionMap.forEach((Map map) {
-      String date = map['date'];
+    itemSnapshot.documents.forEach((document) {
+      Map transactionMap = document.data;
+      String date = transactionMap['date'];
       if (_isNotOfToday(date)) {
         return;
       }
-      itemTransactionMap[map['id']] = {
-        'type': map['type'],
-        'itemId': map['item_id'],
-        'amount': map['amount'] / map['items'],
-        'costPrice': map['cost_price'],
-        'dueAmount': map['due_amount'],
-        'items': map['items'],
-        'date': map['date'],
-        'description': map['description']
+      itemTransactionMap[document.documentID] = {
+        'type': transactionMap['type'],
+        'itemId': transactionMap['item_id'],
+        'amount': transactionMap['amount'] / transactionMap['items'],
+        'costPrice': transactionMap['cost_price'],
+        'dueAmount': transactionMap['due_amount'],
+        'items': transactionMap['items'],
+        'date': date,
+        'description': transactionMap['description']
       };
     });
     debugPrint("Cached transaction cache $itemTransactionMap");

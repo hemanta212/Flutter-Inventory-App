@@ -12,8 +12,10 @@ class StockEntryForm extends StatefulWidget {
   final String title;
   final ItemTransaction transaction;
   final bool forEdit;
+  final String transactionId;
 
-  StockEntryForm({this.transaction, this.title, this.forEdit});
+  StockEntryForm(
+      {this.transaction, this.title, this.transactionId, this.forEdit});
 
   @override
   State<StatefulWidget> createState() {

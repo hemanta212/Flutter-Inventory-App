@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
-import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/services/crudHelper.dart';
+import 'package:bk_app/models/item.dart';
 
 class FormUtils {
   static String fmtToIntIfPossible(double value) {
@@ -46,23 +48,34 @@ class FormUtils {
     return success;
   }
 
-  static void deleteTransactionAndUpdateItem(
-      callback, transaction, item) async {
+  static void deleteTransactionAndUpdateItem(callback, transaction,
+      transactionId, DocumentSnapshot itemSnapshot) async {
     // Sync newly updated item and delete transaction from db in batch
     var results;
-    bool success = false;
-    Database db = await DbHelper().database;
+    CrudHelper crudHelper = CrudHelper();
+    Firestore db = Firestore.instance;
+    WriteBatch batch = db.batch();
+    /*
+
+    batch.setData(
+     db.collection('items').add());
+
+     batch.updateData(
+     db.collection(’users’).document(’id’),{'status': 'Rejected'});
+     batch.delete(db.collection(’users’).document(’id’));
+     batch.commit();
+     
+     */
 
     // Reset item to state before this sales transaction
-    if (item == null) {
+
+    if (itemSnapshot.exists == false) {
       // condition for orphan transaction cases
-      int result = await DbHelper().deleteItemTransaction(transaction.id);
-      if (result != 0) {
-        success = true;
-      }
-      callback(success);
+      crudHelper().deleteItemTransaction(transaction.id);
+      callback(true);
       return;
     } else {
+      var item = Item.fromMapObject(itemSnapshot.data);
       if (transaction.type == 0) {
         item.increaseStock(transaction.items);
       } else {

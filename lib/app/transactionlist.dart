@@ -1,3 +1,5 @@
+import 'package:bk_app/services/crud.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -5,7 +7,6 @@ import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
 import 'package:bk_app/app/salesOverview.dart';
 import 'package:bk_app/models/transaction.dart';
-import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/window.dart';
@@ -20,9 +21,10 @@ class TransactionList extends StatefulWidget {
 }
 
 class TransactionListState extends State<TransactionList> {
-  DbHelper databaseHelper = DbHelper();
+  CrudHelper crudHelper = CrudHelper();
   final bloc = TransactionBloc();
   Map itemMapCache = Map();
+  Stream<QuerySnapshot> transactions;
 
   @override
   void dispose() {
@@ -32,8 +34,9 @@ class TransactionListState extends State<TransactionList> {
 
   @override
   void initState() {
-    super.initState();
+    this._updateListView();
     _initializeItemMapCache();
+    super.initState();
   }
 
   @override
@@ -54,18 +57,17 @@ class TransactionListState extends State<TransactionList> {
     );
   }
 
-  StreamBuilder<List<ItemTransaction>> getTransactionListView() {
-    TextStyle nameStyle = Theme.of(context).textTheme.subhead;
-
-    return StreamBuilder<List<ItemTransaction>>(
-      stream: bloc.transactions,
-      builder: (BuildContext context,
-          AsyncSnapshot<List<ItemTransaction>> snapshot) {
+  StreamBuilder getTransactionListView() {
+    return StreamBuilder(
+      stream: this.transactions,
+      builder: (context, snapshot) {
         if (snapshot.hasData) {
           return ListView.builder(
-            itemCount: snapshot.data.length,
+            itemCount: snapshot.data.documents.length,
             itemBuilder: (BuildContext context, int index) {
-              ItemTransaction transaction = snapshot.data[index];
+              Map itemTransactionMap = snapshot.data.documents[index].data;
+              ItemTransaction transaction =
+                  ItemTransaction.fromMapObject(itemTransactionMap);
               return Card(
                   color: Colors.white,
                   elevation: 2.0,
@@ -80,7 +82,10 @@ class TransactionListState extends State<TransactionList> {
                           FormUtils.fmtToIntIfPossible(transaction.amount),
                     ),
                     onTap: () {
-                      _navigateToDetail(transaction, 'Edit Item');
+                      String transactionId =
+                          snapshot.data.documents[index].documentID;
+                      _navigateToDetail(transaction, 'Edit Item',
+                          transactionId: transactionId);
                     },
                   ));
             },
@@ -122,14 +127,21 @@ class TransactionListState extends State<TransactionList> {
     ]);
   }
 
-  void _navigateToDetail(ItemTransaction transaction, String name) async {
+  void _navigateToDetail(ItemTransaction transaction, String name,
+      {String transactionId}) async {
     var form;
     if (transaction.type == 0) {
-      form =
-          SalesEntryForm(title: name, transaction: transaction, forEdit: true);
+      form = SalesEntryForm(
+          title: name,
+          transaction: transaction,
+          forEdit: true,
+          transactionId: transactionId);
     } else {
-      form =
-          StockEntryForm(title: name, transaction: transaction, forEdit: true);
+      form = StockEntryForm(
+          title: name,
+          transaction: transaction,
+          forEdit: true,
+          transactionId: transactionId);
     }
 
     bool result =
@@ -144,7 +156,7 @@ class TransactionListState extends State<TransactionList> {
 
   void _updateListView() {
     setState(() {
-      this.bloc.getTransactions();
+      this.transactions = crudHelper.getItemTransactions();
     });
   }
 
