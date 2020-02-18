@@ -46,8 +46,7 @@ class ItemListState extends State<ItemList> {
   }
 
   StreamBuilder<List<Item>> getItemListView() {
-    TextStyle nameStyle = Theme.of(context).textTheme.subhead;
-
+    ThemeData localTheme = Theme.of(context);
     return StreamBuilder<List<Item>>(
       stream: bloc.items,
       builder: (BuildContext context, AsyncSnapshot<List<Item>> snapshot) {
@@ -57,34 +56,25 @@ class ItemListState extends State<ItemList> {
             itemBuilder: (BuildContext context, int index) {
               Item item = snapshot.data[index];
               return GestureDetector(
-                key: Key(item.name),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.red,
-                    child: Icon(Icons.keyboard_arrow_right),
+                  key: Key(item.name),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.keyboard_arrow_right),
+                    ),
+                    title: _getNameAndPrice(context, item),
+                    subtitle:
+                        Text(item.nickName, style: localTheme.textTheme.body1),
+                    onTap: () {
+                      this._showItemInfoDialog(item);
+                    },
+                    onLongPress: () {
+                      navigateToDetail(item, 'Edit Item');
+                    },
                   ),
-                  title: Text(item.name, style: nameStyle),
-                  subtitle: Text(_getNickNameAndMarkedPrice(item)),
-                  onTap: () {
-                    this._showItemInfoDialog(item);
-                  },
-                  onLongPress: () {
-                    navigateToDetail(item, 'Edit Item');
-                  },
-                ),
-                /*
                   onHorizontalDragEnd: (DragEndDetails details) {
                     this._initiateTransaction("Sales Entry", item);
-                    bool swipedRight =
-                        dir == DismissDirection.startToEnd ? true : false;
-                    if (swipedRight) {
-                      this._initiateTransaction("Sales Entry", item);
-                    } else {
-                      this._initiateTransaction("Stock Entry", item);
-                    }
-                  }
-                    */
-              );
+                  });
             },
           );
         } else {
@@ -122,6 +112,13 @@ class ItemListState extends State<ItemList> {
                       ),
                       Row(
                         children: <Widget>[
+                          WindowUtils.getCard("Cost Price"),
+                          WindowUtils.getCard(FormUtils.fmtToIntIfPossible(
+                              FormUtils.getShortDouble(item.costPrice ?? 0.0))),
+                        ],
+                      ),
+                      Row(
+                        children: <Widget>[
                           WindowUtils.getCard("Total Stocks"),
                           WindowUtils.getCard(
                               FormUtils.fmtToIntIfPossible(item.totalStock)),
@@ -150,8 +147,8 @@ class ItemListState extends State<ItemList> {
 
   void _initiateTransaction(String formName, item) async {
     Map formMap = {
-      'Sales Entry': SalesEntryForm(swipeData: item),
-      'Stock Entry': StockEntryForm()
+      'Sales Entry': SalesEntryForm(swipeData: item, title: formName),
+      'Stock Entry': StockEntryForm(title: formName)
     };
 
     await Navigator.push(
@@ -164,11 +161,23 @@ class ItemListState extends State<ItemList> {
     });
   }
 
-  static String _getNickNameAndMarkedPrice(Item item) {
+  static Widget _getNameAndPrice(BuildContext context, Item item) {
+    TextStyle nameStyle = Theme.of(context).textTheme.subhead;
+    String name = item.name;
     String markedPrice = FormUtils.fmtToIntIfPossible(item.markedPrice);
-    String finalMarkedPrice =
-        markedPrice.isEmpty ? "" : "Marked Price: Rs $markedPrice";
-    String nickName = item.nickName ?? '';
-    return "$nickName\n$finalMarkedPrice";
+    String finalMarkedPrice = markedPrice.isEmpty ? "" : "Rs $markedPrice";
+    return Row(children: <Widget>[
+      Expanded(flex: 1, child: Text(name, style: nameStyle)),
+      Visibility(
+          visible: finalMarkedPrice == '' ? false : true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              SizedBox(height: 10.0, width: 1.0),
+              Text("Price", style: nameStyle.copyWith(fontSize: 14.0)),
+              Text(finalMarkedPrice, style: nameStyle),
+            ],
+          )),
+    ]);
   }
 }

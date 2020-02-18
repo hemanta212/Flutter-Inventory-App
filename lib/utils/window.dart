@@ -90,7 +90,7 @@ class WindowUtils {
         ); //Expanded
   }
 
-  static String formValidator(String value, String labelText) {
+  static String _formValidator(String value, String labelText) {
     if (value.isEmpty) {
       return "Please enter $labelText";
     }
@@ -104,7 +104,7 @@ class WindowUtils {
       TextInputType keyboardType = TextInputType.text,
       int maxLines = 1,
       var onChanged,
-      var validator = formValidator,
+      var validator = _formValidator,
       bool enabled = true}) {
     final double _minimumPadding = 5.0;
 
@@ -142,7 +142,7 @@ class WindowUtils {
       BuildContext context,
       List<Map> suggestions,
       bool enabled,
-      var validator = formValidator,
+      var validator = _formValidator,
       var onChanged,
       var getSuggestions}) {
     return TypeAheadFormField(
@@ -163,6 +163,7 @@ class WindowUtils {
         return validator(value, labelText);
       },
       suggestionsCallback: (givenString) {
+        onChanged();
         if (suggestions.isEmpty) {
           suggestions = getSuggestions();
         }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
@@ -73,11 +74,13 @@ class TransactionListState extends State<TransactionList> {
                       backgroundColor: Colors.red,
                       child: Icon(Icons.keyboard_arrow_right),
                     ),
-                    title: Text(this.getDescription(transaction),
-                        style: nameStyle),
-                    subtitle: Text(transaction.date ?? ''),
+                    title: this._getDescription(context, transaction),
+                    subtitle: Text(
+                      "Amount: Rs. " +
+                          FormUtils.fmtToIntIfPossible(transaction.amount),
+                    ),
                     onTap: () {
-                      navigateToDetail(transaction, 'Edit Item');
+                      _navigateToDetail(transaction, 'Edit Item');
                     },
                   ));
             },
@@ -89,7 +92,37 @@ class TransactionListState extends State<TransactionList> {
     );
   }
 
-  void navigateToDetail(ItemTransaction transaction, String name) async {
+  Widget _getDescription(BuildContext context, ItemTransaction transaction) {
+    ThemeData localTheme = Theme.of(context);
+    String itemName = this._getItemName(transaction);
+    String action = transaction.type.isOdd ? "Bought" : "Sold";
+    String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
+
+    DateTime transactionDate =
+        DateFormat.yMMMd().add_jms().parse(transaction.date);
+    String dayYear = DateFormat.yMMMd().format(transactionDate);
+    String time = DateFormat.jm().format(transactionDate);
+
+    return Row(children: <Widget>[
+      Expanded(
+          flex: 1,
+          child: Column(children: <Widget>[
+            Text("$action: $itemNo $itemName",
+                style: localTheme.textTheme.subhead),
+          ])),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          SizedBox(height: 10.0, width: 1.0),
+          Text(dayYear,
+              style: localTheme.textTheme.body1.copyWith(fontSize: 10.0)),
+          Text(time, style: localTheme.textTheme.body2),
+        ],
+      ),
+    ]);
+  }
+
+  void _navigateToDetail(ItemTransaction transaction, String name) async {
     var form;
     if (transaction.type == 0) {
       form =
@@ -105,11 +138,11 @@ class TransactionListState extends State<TransactionList> {
     }));
 
     if (result == true) {
-      updateListView();
+      this._updateListView();
     }
   }
 
-  void updateListView() {
+  void _updateListView() {
     setState(() {
       this.bloc.getTransactions();
     });
@@ -119,20 +152,16 @@ class TransactionListState extends State<TransactionList> {
     this.itemMapCache = await StartupCache().itemMap;
   }
 
-  String getDescription(ItemTransaction transaction) {
+  String _getItemName(ItemTransaction transaction) {
     if (this.itemMapCache.isEmpty) {
-      _initializeItemMapCache();
       debugPrint("item cache still empty");
-      return transaction.description;
+      return 'N/A';
     }
 
     Map map = this.itemMapCache;
     List infoList = map[transaction.itemId];
-    String action = transaction.type.isOdd ? "Bought" : "Sold";
     String itemName = infoList?.first ?? 'N/A';
-    String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
-    String amount = FormUtils.fmtToIntIfPossible(transaction.amount);
-    return "$action: $itemNo $itemName \nAmount: $amount";
+    return itemName;
   }
 
   void _showTransactionProfit() async {

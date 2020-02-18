@@ -157,6 +157,11 @@ class _StockEntryFormState extends State<StockEntryForm> {
                       textStyle: textStyle,
                       controller: this.itemNumberController,
                       keyboardType: TextInputType.number,
+                      validator: (String value, String labelText) {
+                        if (value == '0.0' || value == '0' || value.isEmpty) {
+                          return '';
+                        }
+                      },
                       onChanged: () {},
                     ),
 

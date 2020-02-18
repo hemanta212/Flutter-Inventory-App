@@ -52,11 +52,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   @override
   void initState() {
-    super.initState();
     this.formName = _forms[0];
-    _currentFormSelected = this.formName;
+    this._currentFormSelected = this.formName;
     _initializeItemNamesAndNicknamesMapCache();
     _initiateTransactionData();
+    super.initState();
   }
 
   void _initiateTransactionData() {
@@ -96,6 +96,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     }
 
     if (this.widget.swipeData != null) {
+      debugPrint("Registereing swipeData.");
       this.tempItemId = this.widget.swipeData.id;
     }
   }
@@ -103,6 +104,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   Widget buildForm(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
+    debugPrint("making build form");
     return Column(children: <Widget>[
       DropdownButton<String>(
         items: _forms.map((String dropDownStringItem) {
@@ -165,6 +167,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                         textStyle: textStyle,
                         controller: this.itemNumberController,
                         keyboardType: TextInputType.number,
+                        validator: (String value, String labelText) {
+                          if (value == '0.0' || value == '0' || value.isEmpty) {
+                            return "$labelText is empty or zero";
+                          }
+                        },
                         onChanged: () {}),
 
                     // Selling price
@@ -242,6 +249,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("TITLE IS $title");
     return CustomScaffold.setScaffold(context, title, buildForm);
   }
 
@@ -295,9 +303,13 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   // Save data to database
   void _save() async {
+    void _alertFail(message) {
+      WindowUtils.showAlertDialog(context, "Failed!", message);
+    }
+
     Item item = await this.databaseHelper.getItem("id", this.tempItemId);
     if (item == null) {
-      WindowUtils.showAlertDialog(context, "Failed!", "Item not registered");
+      _alertFail("Item not registered");
       return;
     }
 
@@ -307,8 +319,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     if (this.transaction.id == null && this.transaction.itemId != item.id) {
       // Case insert
       if (item.totalStock < items) {
-        WindowUtils.showAlertDialog(
-            context, "Failed!", "Empty stock. Cannot sell.");
+        _alertFail("Empty stock. Cannot sell.");
         return;
       } else {
         item.decreaseStock(items);
@@ -319,8 +330,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
           "updating transaction and this is current stock ${item.totalStock} of ${item.name}");
       double netAddition = items - this.transaction.items;
       if (item.totalStock < netAddition) {
-        WindowUtils.showAlertDialog(
-            context, "Failed!", "Empty or insufficient stock.\nCannot sell.");
+        _alertFail("Empty or insufficient stock.\nCannot sell.");
         return;
       } else {
         item.decreaseStock(netAddition);
