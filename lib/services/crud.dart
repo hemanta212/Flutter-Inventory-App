@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:bk_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:bk_app/models/item.dart';
@@ -18,25 +19,41 @@ class CrudHelper {
   }
 
   Stream<QuerySnapshot> getItems() {
-    return Firestore.instance.collection('items').snapshots();
+    return Firestore.instance
+        .collection('items')
+        .orderBy('used', descending: true)
+        .snapshots();
   }
 
   Future<DocumentSnapshot> getItem(String field, String value) async {
     QuerySnapshot itemSnapshot = await Firestore.instance
         .collection('items')
         .where(field, isEqualTo: value)
-        .getDocuments();
+        .getDocuments()
+        .catchError((e) {
+      return null;
+    });
+
+    if (itemSnapshot.documents.isEmpty) {
+      return null;
+    }
     return itemSnapshot.documents.first;
   }
 
   Future<DocumentSnapshot> getItemById(String id) async {
     DocumentSnapshot item =
-        await Firestore.instance.document('items/$id').get();
+        await Firestore.instance.document('items/$id').get().catchError((e) {
+      return null;
+    });
+
     return item;
   }
 
   Future<QuerySnapshot> getItemQuerySnapshot() {
-    return Firestore.instance.collection('items').getDocuments();
+    return Firestore.instance
+        .collection('items')
+        .orderBy('used', descending: true)
+        .getDocuments();
   }
 
   Future<int> updateItem(String itemId, Item newItem) async {
@@ -76,11 +93,17 @@ class CrudHelper {
   }
 
   Stream<QuerySnapshot> getItemTransactions() {
-    return Firestore.instance.collection('transactions').snapshots();
+    return Firestore.instance
+        .collection('transactions')
+        .orderBy('created_at', descending: true)
+        .snapshots();
   }
 
   Future<QuerySnapshot> getItemTransactionQuerySnapshot() {
-    return Firestore.instance.collection('transactions').getDocuments();
+    return Firestore.instance
+        .collection('transactions')
+        .orderBy('created_at', descending: true)
+        .getDocuments();
   }
 
   Future<int> updateItemTransaction(
@@ -101,6 +124,31 @@ class CrudHelper {
         .collection('transactions')
         .document(transactionId)
         .delete()
+        .catchError((e) {
+      print(e);
+      return 0;
+    });
+    return 1;
+  }
+
+  // Users
+
+  // Item
+  Future<int> addUserData(UserData userData) async {
+    await Firestore.instance
+        .collection('users')
+        .add(userData.toMap())
+        .catchError((e) {
+      print(e);
+      return 0;
+    });
+    return 1;
+  }
+
+  Future<int> addUserContent(UserContent userContent) async {
+    await Firestore.instance
+        .collection(userContent.username)
+        .add(userContent.toMap())
         .catchError((e) {
       print(e);
       return 0;

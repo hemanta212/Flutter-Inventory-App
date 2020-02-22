@@ -5,11 +5,11 @@ import 'package:bk_app/app/itementryform.dart';
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
 import 'package:bk_app/models/item.dart';
-import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/services/crud.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/window.dart';
-import 'package:bk_app/services/crud.dart';
+import 'package:bk_app/utils/loading.dart';
 
 class ItemList extends StatefulWidget {
   @override
@@ -19,7 +19,6 @@ class ItemList extends StatefulWidget {
 }
 
 class ItemListState extends State<ItemList> {
-  DbHelper databaseHelper = DbHelper();
   CrudHelper crudHelper = CrudHelper();
   Stream<QuerySnapshot> items;
 
@@ -56,8 +55,8 @@ class ItemListState extends State<ItemList> {
             return ListView.builder(
               itemCount: snapshot.data.documents.length,
               itemBuilder: (BuildContext context, int index) {
-                Map itemMap = snapshot.data.documents[index].data;
-                Item item = Item.fromMapObject(itemMap);
+                DocumentSnapshot itemSnapshot = snapshot.data.documents[index];
+                Item item = Item.fromMapObject(itemSnapshot.data);
                 return GestureDetector(
                     key: Key(item.name),
                     child: ListTile(
@@ -72,18 +71,20 @@ class ItemListState extends State<ItemList> {
                         this._showItemInfoDialog(item);
                       },
                       onLongPress: () {
-                        String itemId =
-                            snapshot.data.documents[index].documentID;
+                        String itemId = itemSnapshot.documentID;
                         navigateToDetail(item, 'Edit Item', itemId: itemId);
                       },
                     ),
+                    onVerticalDragEnd: (DragEndDetails details) {
+                      this._initiateTransaction("Stock Entry", itemSnapshot);
+                    },
                     onHorizontalDragEnd: (DragEndDetails details) {
-                      this._initiateTransaction("Sales Entry", item);
+                      this._initiateTransaction("Sales Entry", itemSnapshot);
                     });
               },
             );
           } else {
-            return CircularProgressIndicator();
+            return Loading();
           }
         });
   }
@@ -116,7 +117,7 @@ class ItemListState extends State<ItemList> {
                       ),
                       Row(
                         children: <Widget>[
-                          WindowUtils.getCard("Cost Price"),
+                          WindowUtils.getCard("Current CP"),
                           WindowUtils.getCard(FormUtils.fmtToIntIfPossible(
                               FormUtils.getShortDouble(item.costPrice ?? 0.0))),
                         ],
@@ -150,10 +151,13 @@ class ItemListState extends State<ItemList> {
     }
   }
 
-  void _initiateTransaction(String formName, item) async {
+  void _initiateTransaction(String formName, itemSnapshot) async {
+    String itemName = itemSnapshot.data['name'];
     Map formMap = {
-      'Sales Entry': SalesEntryForm(swipeData: item, title: formName),
-      'Stock Entry': StockEntryForm(title: formName)
+      'Sales Entry':
+          SalesEntryForm(swipeData: itemSnapshot, title: "Sell $itemName"),
+      'Stock Entry':
+          StockEntryForm(swipeData: itemSnapshot, title: "Buy $itemName")
     };
 
     await Navigator.push(

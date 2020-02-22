@@ -103,6 +103,7 @@ class WindowUtils {
       TextEditingController controller,
       TextInputType keyboardType = TextInputType.text,
       int maxLines = 1,
+      bool obscureText = false,
       var onChanged,
       var validator = _formValidator,
       bool enabled = true}) {
@@ -116,6 +117,7 @@ class WindowUtils {
         style: textStyle,
         maxLines: maxLines,
         controller: controller,
+        obscureText : obscureText,
         validator: (String value) {
           return validator(value, labelText);
         },

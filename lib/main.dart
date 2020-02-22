@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show runApp;
-import 'package:bk_app/app/mainview.dart' show MainView;
+import 'package:flutter/material.dart';
+import 'package:bk_app/app/mainview.dart';
 
 void main() => runApp(MainView());

@@ -1,44 +1,52 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import 'package:bk_app/utils/dbhelper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
+import 'package:bk_app/services/crud.dart';
 
 class StockEntryForm extends StatefulWidget {
   final String title;
   final ItemTransaction transaction;
   final bool forEdit;
   final String transactionId;
+  final DocumentSnapshot swipeData;
 
   StockEntryForm(
-      {this.transaction, this.title, this.transactionId, this.forEdit});
+      {this.transaction,
+      this.title,
+      this.transactionId,
+      this.forEdit,
+      this.swipeData});
 
   @override
   State<StatefulWidget> createState() {
-    return _StockEntryFormState(this.transaction, this.title);
+    return _StockEntryFormState(
+        this.title, this.transactionId, this.transaction);
   }
 }
 
 class _StockEntryFormState extends State<StockEntryForm> {
   String title;
+  String transactionId;
   ItemTransaction transaction;
-  _StockEntryFormState(this.transaction, this.title);
+  _StockEntryFormState(this.title, this.transactionId, this.transaction);
 
   // Variables
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
-  DbHelper databaseHelper = DbHelper();
+  CrudHelper crudHelper = CrudHelper();
 
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
   String formName;
   String disclaimerText = '';
   String stringUnderName = '';
   String _currentFormSelected;
-  int tempItemId;
+  String tempItemId;
   List<Map> itemNamesAndNicknames = List<Map>();
   bool enableAdvancedFields = false;
 
@@ -64,34 +72,35 @@ class _StockEntryFormState extends State<StockEntryForm> {
       this.transaction = ItemTransaction(1, null, 0.0, 0.0, '');
     }
 
-    if (this.transaction.id != null) {
+    if (this.transactionId != null) {
       debugPrint("Getting transanction obj");
       this.itemNumberController.text =
           FormUtils.fmtToIntIfPossible(this.transaction.items);
       this.costPriceController.text =
           FormUtils.fmtToIntIfPossible(this.transaction.amount);
+      this.descriptionController.text = this.transaction.description ?? '';
+      this.duePriceController.text =
+          FormUtils.fmtToIntIfPossible(this.transaction.dueAmount);
+      if (this.descriptionController.text.isNotEmpty ||
+          this.duePriceController.text.isNotEmpty) {
+        this.enableAdvancedFields = true;
+      }
 
-      Future<Item> itemFuture =
-          this.databaseHelper.getItem("id", this.transaction.itemId);
-      itemFuture.then((item) {
-        if (item == null) {
-          this.transaction.itemId = null;
+      Future<DocumentSnapshot> itemSnapshotFuture =
+          this.crudHelper.getItemById(this.transaction.itemId);
+      itemSnapshotFuture.then((itemSnapshot) {
+        if (itemSnapshot.data == null) {
           setState(() {
             this.disclaimerText =
                 'Orphan Transaction: The item associated with this transaction has been deleted';
           });
         } else {
-          this.tempItemId = this.transaction.itemId;
-          this.itemNameController.text = '${item.name}';
+          debugPrint(
+              "Got item snapshot data to fill form ${itemSnapshot.data}");
+          this.itemNameController.text = '${itemSnapshot.data['name']}';
           this.markedPriceController.text =
-              FormUtils.fmtToIntIfPossible(item.markedPrice);
-          this.descriptionController.text = this.transaction.description ?? '';
-          this.duePriceController.text =
-              FormUtils.fmtToIntIfPossible(this.transaction.dueAmount);
-          if (this.descriptionController.text.isNotEmpty ||
-              this.duePriceController.text.isNotEmpty) {
-            this.enableAdvancedFields = true;
-          }
+              FormUtils.fmtToIntIfPossible(itemSnapshot.data['marked_price']);
+          this.tempItemId = itemSnapshot.documentID;
         }
       });
     }
@@ -132,18 +141,20 @@ class _StockEntryFormState extends State<StockEntryForm> {
                     ),
 
                     // Item name
-                    WindowUtils.genAutocompleteTextField(
-                        labelText: "Item name",
-                        hintText: "Name of item you bought",
-                        textStyle: textStyle,
-                        controller: itemNameController,
-                        getSuggestions: this._getAutoCompleteSuggestions,
-                        onChanged: () {
-                          return setState(() {
-                            this.updateItemName();
-                          });
-                        },
-                        suggestions: this.itemNamesAndNicknames),
+                    Visibility(
+                        visible: this.widget.swipeData == null ? true : false,
+                        child: WindowUtils.genAutocompleteTextField(
+                            labelText: "Item name",
+                            hintText: "Name of item you bought",
+                            textStyle: textStyle,
+                            controller: itemNameController,
+                            getSuggestions: this._getAutoCompleteSuggestions,
+                            onChanged: () {
+                              return setState(() {
+                                this.updateItemName();
+                              });
+                            },
+                            suggestions: this.itemNamesAndNicknames)),
 
                     Visibility(
                       visible: stringUnderName.isNotEmpty,
@@ -264,28 +275,30 @@ class _StockEntryFormState extends State<StockEntryForm> {
   }
 
   void updateItemName() {
-    var name = this.itemNameController.text;
-    Future<Item> itemFuture = this.databaseHelper.getItem("name", name);
-    itemFuture.then((item) {
-      if (item == null) {
+    String name = this.itemNameController.text;
+    Future<DocumentSnapshot> itemSnapshotFuture =
+        this.crudHelper.getItem("name", name);
+    itemSnapshotFuture.then((itemSnapshot) {
+      if (itemSnapshot == null) {
+        debugPrint("Update item name got snapshot $itemSnapshot");
         this.stringUnderName = 'Unregistered item';
         this.tempItemId = null;
       } else {
         this.stringUnderName = '';
-        this.tempItemId = item.id;
+        this.tempItemId = itemSnapshot.documentID;
       }
     }, onError: (e) {
       debugPrint('UpdateitemName Error::  $e');
     });
   }
 
-  void updateCostPrice() {
-    this.transaction.amount = double.parse(this.costPriceController.text).abs();
-  }
-
   void updateDuePrice() {
     this.transaction.dueAmount =
         double.parse(this.duePriceController.text).abs();
+  }
+
+  void updateCostPrice() {
+    this.transaction.amount = double.parse(this.costPriceController.text).abs();
   }
 
   void updateTransactionDescription() {
@@ -311,54 +324,74 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
   // Save data to database
   void _save() async {
-    Item item = await this.databaseHelper.getItem("id", this.tempItemId);
-    if (item == null) {
+    DocumentSnapshot itemSnapshot;
+
+    if (this.widget.swipeData?.exists ?? false) {
+      debugPrint("Using swipeData to save");
+      itemSnapshot = this.widget.swipeData;
+    } else {
+      itemSnapshot = await this.crudHelper.getItemById(this.tempItemId);
+    }
+
+    debugPrint(
+        "Stock entry got itemSnapshot $itemSnapshot & data ${itemSnapshot.data}");
+    if (itemSnapshot.data == null) {
       WindowUtils.showAlertDialog(
           this.context, "Failed!", "Item not registered");
       return;
     }
 
+    Item item = Item.fromMapObject(itemSnapshot.data);
+    String itemId = itemSnapshot.documentID;
     double items = double.parse(this.itemNumberController.text).abs();
+    double cpPerItem = this.transaction.amount / items;
     double netAddition;
 
-    if (this.transaction.id != null && this.transaction.itemId == item.id) {
+    if (this.transactionId != null && this.transaction.itemId == itemId) {
       // Update case.
       debugPrint("Update case stock entry");
       netAddition = items - this.transaction.items;
+      /*
+      if (this.transaction.date == item.lastStockEntry) {
+        item.modifyLatestStockEntry('stock', netAddition);
+        item.modifyLatestStockEntry('price', cpPerItem);
+      }
+      */
     } else {
+      // item.costPriceStocks = {cpPerItem: items};
       netAddition = items;
     }
 
-    this.transaction.itemId = item.id;
+    item.costPrice = cpPerItem;
+    this.transaction.itemId = itemId;
     this.transaction.items = items;
-
-    item.costPrice = this.transaction.amount / items;
     item.markedPrice = double.parse(this.markedPriceController.text).abs();
     item.increaseStock(netAddition);
 
-    bool success =
-        await FormUtils.saveTransactionAndUpdateItem(this.transaction, item);
+    bool success = await FormUtils.saveTransactionAndUpdateItem(
+        this.transaction, item, itemId,
+        transactionId: this.transactionId);
 
     this.saveCallback(success);
   }
 
   // Delete item data
   void _delete() async {
-    Item item =
-        await this.databaseHelper.getItem("id", this.transaction.itemId);
-
-    if (this.transaction.id == null) {
+    if (this.transactionId == null) {
       // Case 1: Abandon new item creation
       this.clearFieldsAndTransaction();
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
     } else {
+      DocumentSnapshot itemSnapshot =
+          await this.crudHelper.getItemById(this.transaction.itemId);
+
       // Case 2: Delete item from database after user confirms again
       WindowUtils.showAlertDialog(context, "Delete?",
           "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
-        FormUtils.deleteTransactionAndUpdateItem(
-            this.saveCallback, this.transaction, item);
+        FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
+            this.transaction, this.transactionId, itemSnapshot);
       });
     }
   }

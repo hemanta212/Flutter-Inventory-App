@@ -1,5 +1,4 @@
 class ItemTransaction {
-  int _id;
   int _type;
   double _amount;
   double _costPrice;
@@ -8,20 +7,17 @@ class ItemTransaction {
   double _items;
   String _date;
   String _description;
+  int _createdAt;
 
   ItemTransaction(
       this._type, this._itemId, this._amount, this._items, this._date,
       [this._description, this._costPrice]);
 
-  ItemTransaction.withId(
-      this._id, this._type, this._itemId, this._amount, this._items, this._date,
-      [this._description, this._costPrice]);
-
-  int get id => _id;
-
   String get itemId => _itemId;
 
   int get type => _type;
+
+  int get createdAt => _createdAt;
 
   double get amount => _amount;
 
@@ -41,6 +37,10 @@ class ItemTransaction {
 
   set type(int newType) {
     this._type = newType;
+  }
+
+  set createdAt(int newCreatedAt) {
+    this._createdAt = newCreatedAt;
   }
 
   set description(String newDesc) {
@@ -71,10 +71,6 @@ class ItemTransaction {
   Map<String, dynamic> toMap() {
     var map = Map<String, dynamic>();
 
-    if (id != null) {
-      map['id'] = _id;
-    }
-
     map['item_id'] = _itemId;
     map['type'] = _type;
     map['description'] = _description;
@@ -83,12 +79,12 @@ class ItemTransaction {
     map['amount'] = _amount;
     map['items'] = _items;
     map['cost_price'] = _costPrice;
+    map['created_at'] = _createdAt;
     return map;
   }
 
   // Extract item obj from map obj
   ItemTransaction.fromMapObject(Map<String, dynamic> map) {
-    this._id = map['id'];
     this._type = map['type'];
     this._description = map['description'];
     this._dueAmount = map['due_amount'];
@@ -97,5 +93,6 @@ class ItemTransaction {
     this._amount = map['amount'];
     this._costPrice = map['cost_price'];
     this._items = map['items'];
+    this._createdAt = map['created_at'];
   }
 }

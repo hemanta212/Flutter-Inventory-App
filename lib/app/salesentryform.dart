@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
@@ -17,7 +17,7 @@ class SalesEntryForm extends StatefulWidget {
   // When an item is right swiped from itemList a quick sales form is presented
   // This form obiously shouldNot have itemName field so the itemList will pass
   // the name of item to this form
-  final Item swipeData;
+  final DocumentSnapshot swipeData;
 
   SalesEntryForm(
       {this.title,
@@ -58,6 +58,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   TextEditingController sellingPriceController = TextEditingController();
   TextEditingController duePriceController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
+  TextEditingController costPriceController = TextEditingController();
 
   @override
   void initState() {
@@ -80,33 +81,32 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
           FormUtils.fmtToIntIfPossible(this.transaction.items);
       this.sellingPriceController.text =
           FormUtils.fmtToIntIfPossible(this.transaction.amount);
+      this.costPriceController.text =
+          FormUtils.fmtToIntIfPossible(this.transaction.costPrice);
+      this.descriptionController.text = this.transaction.description ?? '';
+      this.duePriceController.text =
+          FormUtils.fmtToIntIfPossible(this.transaction.dueAmount);
+      if (this.descriptionController.text.isNotEmpty ||
+          this.duePriceController.text.isNotEmpty) {
+        setState(() {
+          this.enableAdvancedFields = true;
+        });
+      }
 
       Future<DocumentSnapshot> itemSnapshotFuture =
           this.crudHelper.getItemById(this.transaction.itemId);
       itemSnapshotFuture.then((itemSnapshot) {
-        if (itemSnapshot == null) {
+        if (itemSnapshot.data == null) {
           setState(() {
             this.disclaimerText =
                 'Orphan Transaction: The item associated with this transaction has been deleted';
           });
         } else {
           debugPrint("hi this item is $itemSnapshot");
-          // this.tempItemId = this.transaction.itemId;
           this.itemNameController.text = '${itemSnapshot.data['name']}';
-          this.descriptionController.text = this.transaction.description ?? '';
-          this.duePriceController.text =
-              FormUtils.fmtToIntIfPossible(this.transaction.dueAmount);
-          if (this.descriptionController.text.isNotEmpty ||
-              this.duePriceController.text.isNotEmpty) {
-            this.enableAdvancedFields = true;
-          }
+          this.tempItemId = itemSnapshot.documentID;
         }
       });
-    }
-
-    if (this.transactionId != null) {
-      debugPrint("Registereing swipeData.");
-      this.tempItemId = this.transactionId;
     }
   }
 
@@ -179,6 +179,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                         validator: (String value, String labelText) {
                           if (value == '0.0' || value == '0' || value.isEmpty) {
                             return "$labelText is empty or zero";
+                          } else {
+                            return null;
                           }
                         },
                         onChanged: () {}),
@@ -191,6 +193,19 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                       keyboardType: TextInputType.number,
                       onChanged: this.updateSellingPrice,
                     ),
+
+                    // Cost price
+                    Visibility(
+                        visible:
+                            this.transaction.costPrice == null ? false : true,
+                        child: WindowUtils.genTextField(
+                          labelText: "Cost price",
+                          hintText: "Cost price per item",
+                          textStyle: textStyle,
+                          controller: this.costPriceController,
+                          keyboardType: TextInputType.number,
+                          onChanged: this.updateCostPrice,
+                        )),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -267,6 +282,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
         double.parse(this.sellingPriceController.text).abs();
   }
 
+  void updateCostPrice() {
+    this.transaction.costPrice =
+        double.parse(this.costPriceController.text).abs();
+  }
+
   void updateDuePrice() {
     this.transaction.dueAmount =
         double.parse(this.duePriceController.text).abs();
@@ -281,6 +301,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     Future<DocumentSnapshot> itemSnapshotFuture =
         this.crudHelper.getItem("name", name);
     itemSnapshotFuture.then((itemSnapshot) {
+      debugPrint("Update item name got snapshot $itemSnapshot");
       if (itemSnapshot == null) {
         this.stringUnderName = 'Unregistered name';
         this.tempItemId = null;
@@ -297,6 +318,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.itemNameController.text = '';
     this.itemNumberController.text = '';
     this.sellingPriceController.text = '';
+    this.costPriceController.text = '';
     this.descriptionController.text = '';
     this.duePriceController.text = '';
     this.enableAdvancedFields = false;
@@ -317,22 +339,30 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       WindowUtils.showAlertDialog(context, "Failed!", message);
     }
 
-    DocumentSnapshot itemSnapshot =
-        await this.crudHelper.getItemById(this.tempItemId).catchError((e) {
-      return null;
-    });
+    DocumentSnapshot itemSnapshot;
 
-    if (itemSnapshot == null) {
+    if (this.widget.swipeData?.exists ?? false) {
+      debugPrint("Using swipeData to save");
+      itemSnapshot = this.widget.swipeData;
+    } else {
+      itemSnapshot =
+          await this.crudHelper.getItemById(this.tempItemId).catchError((e) {
+        return null;
+      });
+    }
+
+    debugPrint("Saving sales item snapshot is $itemSnapshot");
+    if (itemSnapshot?.data == null) {
       _alertFail("Item not registered");
       return;
     }
 
     Item item = Item.fromMapObject(itemSnapshot.data);
+    String itemId = itemSnapshot.documentID;
     double items = double.parse(this.itemNumberController.text).abs();
 
     // Additional checks.
-    if (this.transactionId == null &&
-        this.transaction.itemId != itemSnapshot.documentID) {
+    if (this.transactionId == null && this.transaction.itemId != itemId) {
       // Case insert
       if (item.totalStock < items) {
         _alertFail("Empty stock. Cannot sell.");
@@ -353,30 +383,28 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       }
     }
 
-    this.transaction.itemId = item.id;
+    this.transaction.itemId = itemId;
     this.transaction.items = items;
     this.transaction.costPrice = item.costPrice;
 
-    bool success =
-        await FormUtils.saveTransactionAndUpdateItem(this.transaction, item);
+    bool success = await FormUtils.saveTransactionAndUpdateItem(
+        this.transaction, item, itemId,
+        transactionId: this.transactionId);
 
     this.saveCallback(success);
   }
 
-  // Delete item data
   void _delete() async {
-    // Initialize the item to reset it.
-    debugPrint(
-        "this id is ${this.transactionId} item id is ${this.transaction.itemId}");
-    DocumentSnapshot itemSnapshot =
-        await this.crudHelper.getItemById(this.transaction.itemId);
-
     if (this.transactionId == null) {
       // Case 1: Abandon new item creation
       this.clearFieldsAndTransaction();
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
     } else {
+      // Initialize the item to reset it.
+      DocumentSnapshot itemSnapshot =
+          await this.crudHelper.getItemById(this.transaction.itemId);
+
       // Case 2: Delete item from database after user confirms again
       WindowUtils.showAlertDialog(context, "Delete?",
           "This action is very dangerous and you may lose vital information. Delete?",

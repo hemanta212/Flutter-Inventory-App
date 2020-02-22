@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
-import 'package:bk_app/services/crudHelper.dart';
+import 'package:bk_app/services/crud.dart';
 import 'package:bk_app/models/item.dart';
 
 class FormUtils {
@@ -22,26 +21,28 @@ class FormUtils {
     return double.parse(value.toStringAsFixed(round));
   }
 
-  static Future<bool> saveTransactionAndUpdateItem(transaction, item) async {
-    var success = false;
-    Database db = await DbHelper().database;
+  static Future<bool> saveTransactionAndUpdateItem(
+      transaction, item, String itemId,
+      {String transactionId}) async {
+    Firestore db = Firestore.instance;
+    bool success = true;
 
     try {
-      var batch = db.batch();
-      batch.update('item_table', item.toMap(),
-          where: 'id = ?', whereArgs: [item.id]);
-      if (transaction.id == null) {
+      WriteBatch batch = db.batch();
+      if (transactionId == null) {
+        transaction.createdAt = DateTime.now().millisecondsSinceEpoch;
         transaction.date = DateFormat.yMMMd().add_jms().format(DateTime.now());
-
-        batch.insert('transaction_table', transaction.toMap());
+        if (transaction.type == 1) item.lastStockEntry = transaction.date;
+        batch.setData(
+            db.collection('transactions').document(), transaction.toMap());
       } else {
-        batch.update('transaction_table', transaction.toMap(),
-            where: 'id = ?', whereArgs: [transaction.id]);
+        batch.updateData(db.collection('transactions').document(transactionId),
+            transaction.toMap());
       }
-      var results = await batch.commit();
-      if (results.contains(0) == false) {
-        success = true;
-      }
+
+      item.used += 1;
+      batch.updateData(db.collection('items').document(itemId), item.toMap());
+      batch.commit();
     } catch (e) {
       success = false;
     }
@@ -51,51 +52,34 @@ class FormUtils {
   static void deleteTransactionAndUpdateItem(callback, transaction,
       transactionId, DocumentSnapshot itemSnapshot) async {
     // Sync newly updated item and delete transaction from db in batch
-    var results;
     CrudHelper crudHelper = CrudHelper();
     Firestore db = Firestore.instance;
-    WriteBatch batch = db.batch();
-    /*
-
-    batch.setData(
-     db.collection('items').add());
-
-     batch.updateData(
-     db.collection(’users’).document(’id’),{'status': 'Rejected'});
-     batch.delete(db.collection(’users’).document(’id’));
-     batch.commit();
-     
-     */
+    bool success = true;
 
     // Reset item to state before this sales transaction
-
-    if (itemSnapshot.exists == false) {
+    if (itemSnapshot.data == null) {
       // condition for orphan transaction cases
-      crudHelper().deleteItemTransaction(transaction.id);
-      callback(true);
+      crudHelper.deleteItemTransaction(transactionId);
+      callback(success);
       return;
-    } else {
-      var item = Item.fromMapObject(itemSnapshot.data);
-      if (transaction.type == 0) {
-        item.increaseStock(transaction.items);
-      } else {
-        item.decreaseStock(transaction.items);
-      }
     }
 
-    try {
-      var batch = db.batch();
-      batch.delete('transaction_table',
-          where: 'id = ?', whereArgs: [transaction.id]);
-      batch.update('item_table', item.toMap(),
-          where: 'id = ?', whereArgs: [item.id]);
+    Item item = Item.fromMapObject(itemSnapshot.data);
+    item.used += 1;
 
-      results = await batch.commit();
-      if (results.contains(0) == false) {
-        success = true;
-      }
+    if (transaction.type == 0) {
+      item.increaseStock(transaction.items);
+    } else {
+      item.decreaseStock(transaction.items);
+    }
+    try {
+      WriteBatch batch = db.batch();
+      batch.delete(db.collection('transactions').document(transactionId));
+      batch.updateData(db.collection('items').document(itemSnapshot.documentID),
+          item.toMap());
+      batch.commit();
     } catch (e) {
-      success = true;
+      success = false;
     }
 
     callback(success);

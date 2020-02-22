@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:bk_app/services/crud.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:bk_app/utils/dbhelper.dart';
+import 'package:bk_app/services/crud.dart';
 
 class StartupCache {
   static StartupCache _startupCache; // Singleton dbHelper
@@ -61,12 +61,12 @@ class StartupCache {
     debugPrint("Initializing item transaction map cache");
     CrudHelper crudHelper = CrudHelper();
     Map itemTransactionMap = Map();
-    QuerySnapshot itemSnapshot =
+    QuerySnapshot itemTransactionSnapshot =
         await crudHelper.getItemTransactionQuerySnapshot();
-    if (itemSnapshot.documents.isEmpty) {
+    if (itemTransactionSnapshot.documents.isEmpty) {
       return itemMap;
     }
-    itemSnapshot.documents.forEach((document) {
+    itemTransactionSnapshot.documents.forEach((document) {
       Map transactionMap = document.data;
       String date = transactionMap['date'];
       if (_isNotOfToday(date)) {

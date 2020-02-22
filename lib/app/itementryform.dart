@@ -285,6 +285,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       if (this.itemId != null) {
         // Case 1: Update operation
         debugPrint("Updated item");
+        this.item.used += 1;
         crudHelper.updateItem(this.itemId, this.item);
       } else {
         // Case 2: Insert operation

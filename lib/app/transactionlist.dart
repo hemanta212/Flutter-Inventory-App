@@ -11,7 +11,7 @@ import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/cache.dart';
-import 'package:bk_app/blocs/database_bloc.dart';
+import 'package:bk_app/utils/loading.dart';
 
 class TransactionList extends StatefulWidget {
   @override
@@ -22,15 +22,9 @@ class TransactionList extends StatefulWidget {
 
 class TransactionListState extends State<TransactionList> {
   CrudHelper crudHelper = CrudHelper();
-  final bloc = TransactionBloc();
   Map itemMapCache = Map();
   Stream<QuerySnapshot> transactions;
-
-  @override
-  void dispose() {
-    bloc.dispose();
-    super.dispose();
-  }
+  bool loading = true;
 
   @override
   void initState() {
@@ -52,7 +46,7 @@ class TransactionListState extends State<TransactionList> {
           this._showTransactionProfit();
         },
         tooltip: 'Caclulate Profit',
-        child: Icon(Icons.add),
+        child: Icon(Icons.book),
       ),
     );
   }
@@ -61,13 +55,14 @@ class TransactionListState extends State<TransactionList> {
     return StreamBuilder(
       stream: this.transactions,
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
+        if (snapshot.hasData && !loading) {
           return ListView.builder(
             itemCount: snapshot.data.documents.length,
             itemBuilder: (BuildContext context, int index) {
-              Map itemTransactionMap = snapshot.data.documents[index].data;
+              DocumentSnapshot itemTransactionSnapshot =
+                  snapshot.data.documents[index];
               ItemTransaction transaction =
-                  ItemTransaction.fromMapObject(itemTransactionMap);
+                  ItemTransaction.fromMapObject(itemTransactionSnapshot.data);
               return Card(
                   color: Colors.white,
                   elevation: 2.0,
@@ -82,8 +77,7 @@ class TransactionListState extends State<TransactionList> {
                           FormUtils.fmtToIntIfPossible(transaction.amount),
                     ),
                     onTap: () {
-                      String transactionId =
-                          snapshot.data.documents[index].documentID;
+                      String transactionId = itemTransactionSnapshot.documentID;
                       _navigateToDetail(transaction, 'Edit Item',
                           transactionId: transactionId);
                     },
@@ -91,7 +85,7 @@ class TransactionListState extends State<TransactionList> {
             },
           );
         } else {
-          return Center(child: CircularProgressIndicator());
+          return Loading();
         }
       },
     );
@@ -162,6 +156,7 @@ class TransactionListState extends State<TransactionList> {
 
   void _initializeItemMapCache() async {
     this.itemMapCache = await StartupCache().itemMap;
+    this.loading = false;
   }
 
   String _getItemName(ItemTransaction transaction) {
@@ -182,7 +177,10 @@ class TransactionListState extends State<TransactionList> {
 
     // transactions of type = 0 means outgoing(sales) and 1 means incoming(stockentry)
     itemTransactionMap.forEach((transactionId, value) {
-      if (value['type'] == 0) salesTransactions[transactionId] = value;
+      debugPrint("got value $value");
+      if (value['type'] == 0) {
+        salesTransactions[transactionId] = value;
+      }
     });
 
     if (salesTransactions.isEmpty) {
@@ -203,7 +201,7 @@ class TransactionListState extends State<TransactionList> {
 
     try {
       salesTransactions.forEach((key, value) {
-        int itemId = value['itemId'];
+        String itemId = value['itemId'];
         String name;
         try {
           name = this.itemMapCache[itemId][0];
