@@ -17,10 +17,9 @@ class _RegisterState extends State<Register> {
   String error = '';
   bool loading = false;
 
-  TextEditingController usernameController = TextEditingController();
   TextEditingController userEmailController = TextEditingController();
   TextEditingController userPasswordController = TextEditingController();
- 
+
   @override
   Widget build(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
@@ -40,7 +39,6 @@ class _RegisterState extends State<Register> {
                 ),
               ],
             ),
-
             body: Container(
               padding: EdgeInsets.symmetric(vertical: 20.0, horizontal: 50.0),
               child: Form(
@@ -48,41 +46,27 @@ class _RegisterState extends State<Register> {
                 child: ListView(
                   children: <Widget>[
                     SizedBox(height: 20.0),
-
                     WindowUtils.genTextField(
-                        labelText: "Username",
-                        hintText: "eg:sharma212",
-                        textStyle: textStyle,
-                        controller: this.usernameController,
-                        onChanged: (val) {
-                         setState(() => this.usernameController.text = val);
-                        },
+                      labelText: "Email",
+                      hintText: "example@gmail.com",
+                      textStyle: textStyle,
+                      controller: this.userEmailController,
+                      onChanged: (val) {
+                        setState(() => this.userEmailController.text = val);
+                      },
                     ),
-
                     WindowUtils.genTextField(
-                        labelText: "Email",
-                        hintText: "example@gmail.com",
-                        textStyle: textStyle,
-                        controller: this.userEmailController,
-                        onChanged: (val) {
-                         setState(() => this.userEmailController.text = val);
-                        },
-                    ),
-
-
-                    WindowUtils.genTextField(
-                        labelText: "Password",
-                        textStyle: textStyle,
-                        controller: this.userPasswordController,
-                        obscureText: true,
-                        validator: (val, labelText) => val.length < 6
+                      labelText: "Password",
+                      textStyle: textStyle,
+                      controller: this.userPasswordController,
+                      obscureText: true,
+                      validator: (val, labelText) => val.length < 6
                           ? 'Enter a $labelText 6+ chars long'
                           : null,
-                        onChanged: (val) {
-                         setState(() => this.userPasswordController.text = val);
-                        },
+                      onChanged: (val) {
+                        setState(() => this.userPasswordController.text = val);
+                      },
                     ),
-
                     RaisedButton(
                         color: Colors.pink[400],
                         child: Text(
@@ -93,10 +77,9 @@ class _RegisterState extends State<Register> {
                           if (_formKey.currentState.validate()) {
                             setState(() => loading = true);
                             String email = this.userEmailController.text;
-                            String username = this.usernameController.text;
                             String password = this.userPasswordController.text;
-                            dynamic result = await _auth
-                                .register(email, password, username);
+                            dynamic result =
+                                await _auth.register(email, password);
                             if (result == null) {
                               setState(() {
                                 loading = false;
@@ -117,4 +100,3 @@ class _RegisterState extends State<Register> {
           );
   }
 }
-

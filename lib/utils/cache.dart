@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,16 +11,19 @@ class StartupCache {
   static StartupCache _startupCache; // Singleton dbHelper
   static Map _itemMap;
   static Map _itemTransactionMap;
+  static UserData _currentUserData;
   bool reload;
+  UserData userData;
 
   StartupCache._createInstance(); // Named constructor to create instance of DbHelper
 
-  factory StartupCache({bool reload}) {
+  factory StartupCache({bool reload, UserData userData}) {
     if (_startupCache == null) {
       _startupCache = StartupCache
           ._createInstance(); // This will execute only once, singleton obj
     }
     _startupCache.reload = reload ?? false;
+    _startupCache.userData = userData;
     return _startupCache;
   }
 
@@ -41,8 +45,8 @@ class StartupCache {
 
   Future<Map> initializeItemMap() async {
     debugPrint("Initializing item map cache");
-    CrudHelper crudHelper = CrudHelper();
     Map itemMap = Map();
+    CrudHelper crudHelper = CrudHelper(userData: this.userData);
     QuerySnapshot itemSnapshot = await crudHelper.getItemQuerySnapshot();
     if (itemSnapshot.documents.isEmpty) {
       return itemMap;
@@ -59,7 +63,7 @@ class StartupCache {
 
   Future<Map> initializeItemTransactionMap() async {
     debugPrint("Initializing item transaction map cache");
-    CrudHelper crudHelper = CrudHelper();
+    CrudHelper crudHelper = CrudHelper(userData: this.userData);
     Map itemTransactionMap = Map();
     QuerySnapshot itemTransactionSnapshot =
         await crudHelper.getItemTransactionQuerySnapshot();
@@ -85,6 +89,15 @@ class StartupCache {
     });
     debugPrint("Cached transaction cache $itemTransactionMap");
     return itemTransactionMap;
+  }
+
+  Future<UserData> get currentUserData async {
+    if (_currentUserData == null || this.reload) {
+      debugPrint("hello reloading userdata");
+      _currentUserData = await CrudHelper(userData: this.userData)
+          .getUserDataByUid(this.userData.uid);
+    }
+    return _currentUserData;
   }
 
   static bool _isNotOfToday(String date) {

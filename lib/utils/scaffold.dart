@@ -1,30 +1,55 @@
+import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:bk_app/services/auth.dart';
+import 'package:provider/provider.dart';
 
 class CustomScaffold {
   static Widget setDrawer(context) {
+    UserData userData = Provider.of<UserData>(context);
+    AuthService _auth = AuthService();
+
     return Drawer(
-        child: ListView(children: <Widget>[
-      ListTile(
-        leading: Icon(Icons.home),
-        title: Text("Home"),
-        onTap: () => Navigator.of(context).pushNamed("/mainForm"),
+        child: ListView(padding: EdgeInsets.zero, children: <Widget>[
+      UserAccountsDrawerHeader(
+        accountName: Text(userData.email),
+        accountEmail: Text(userData.verified ? "" : "*Unverified"),
+        currentAccountPicture: CircleAvatar(
+          backgroundColor: Theme.of(context).platform == TargetPlatform.iOS
+              ? Colors.blue
+              : Colors.white,
+          child: Text(
+            "H",
+            style: TextStyle(fontSize: 40.0),
+          ),
+        ),
       ),
       ListTile(
-        leading: Icon(Icons.shopping_cart),
-        title: Text('Items'),
-        onTap: () => Navigator.of(context).pushNamed("/itemList"),
-      ),
+          leading: Icon(Icons.home),
+          title: Text("Home"),
+          onTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pushNamed("/mainForm");
+          }),
       ListTile(
-        leading: Icon(Icons.card_travel),
-        title: Text('Transactions'),
-        onTap: () => Navigator.of(context).pushNamed("/transactionList"),
-      ),
+          leading: Icon(Icons.shopping_cart),
+          title: Text('Items'),
+          onTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pushNamed("/itemList");
+          }),
+      ListTile(
+          leading: Icon(Icons.card_travel),
+          title: Text('Transactions'),
+          onTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pushNamed("/transactionList");
+          }),
       ListTile(
         leading: Icon(Icons.person),
         title: Text('logout'),
         onTap: () async {
-          await AuthService().signOut();
+          Navigator.of(context).pop();
+          await _auth.signOut();
         },
       ),
     ]));

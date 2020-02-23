@@ -1,3 +1,4 @@
+import 'package:bk_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -8,6 +9,7 @@ import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/services/crud.dart';
+import 'package:provider/provider.dart';
 
 class StockEntryForm extends StatefulWidget {
   final String title;
@@ -39,7 +41,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
   // Variables
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
-  CrudHelper crudHelper = CrudHelper();
+  static CrudHelper crudHelper;
+  static UserData userData;
 
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
   String formName;
@@ -63,6 +66,13 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.formName = _forms[1];
     this._currentFormSelected = formName;
     _initializeItemNamesAndNicknamesMapCache();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    userData = Provider.of<UserData>(context);
+    crudHelper = CrudHelper(userData: userData);
     _initiateTransactionData();
   }
 
@@ -86,8 +96,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
         this.enableAdvancedFields = true;
       }
 
-      Future<DocumentSnapshot> itemSnapshotFuture =
-          this.crudHelper.getItemById(this.transaction.itemId);
+      Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItemById(
+        this.transaction.itemId,
+      );
       itemSnapshotFuture.then((itemSnapshot) {
         if (itemSnapshot.data == null) {
           setState(() {
@@ -276,8 +287,10 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
   void updateItemName() {
     String name = this.itemNameController.text;
-    Future<DocumentSnapshot> itemSnapshotFuture =
-        this.crudHelper.getItem("name", name);
+    Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItem(
+      "name",
+      name,
+    );
     itemSnapshotFuture.then((itemSnapshot) {
       if (itemSnapshot == null) {
         debugPrint("Update item name got snapshot $itemSnapshot");
@@ -330,7 +343,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
       debugPrint("Using swipeData to save");
       itemSnapshot = this.widget.swipeData;
     } else {
-      itemSnapshot = await this.crudHelper.getItemById(this.tempItemId);
+      itemSnapshot = await crudHelper.getItemById(
+        this.tempItemId,
+      );
     }
 
     debugPrint(
@@ -370,7 +385,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
     bool success = await FormUtils.saveTransactionAndUpdateItem(
         this.transaction, item, itemId,
-        transactionId: this.transactionId);
+        transactionId: this.transactionId, userData: userData);
 
     this.saveCallback(success);
   }
@@ -383,15 +398,16 @@ class _StockEntryFormState extends State<StockEntryForm> {
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
     } else {
-      DocumentSnapshot itemSnapshot =
-          await this.crudHelper.getItemById(this.transaction.itemId);
+      DocumentSnapshot itemSnapshot = await crudHelper.getItemById(
+        this.transaction.itemId,
+      );
 
       // Case 2: Delete item from database after user confirms again
       WindowUtils.showAlertDialog(context, "Delete?",
           "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
-            this.transaction, this.transactionId, itemSnapshot);
+            this.transaction, this.transactionId, itemSnapshot, userData);
       });
     }
   }
@@ -416,7 +432,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
   void refreshItemTransactionMapCache() async {
     // refresh item transaction map cache since transaction is changed.
-    await StartupCache(reload: true).itemTransactionMap;
+    await StartupCache(userData: userData, reload: true).itemTransactionMap;
   }
 
   void _initializeItemNamesAndNicknamesMapCache() async {

@@ -1,17 +1,19 @@
-import 'package:bk_app/services/crud.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
 import 'package:bk_app/app/salesOverview.dart';
 import 'package:bk_app/models/transaction.dart';
+import 'package:bk_app/models/user.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/utils/loading.dart';
+import 'package:bk_app/services/crud.dart';
 
 class TransactionList extends StatefulWidget {
   @override
@@ -21,16 +23,23 @@ class TransactionList extends StatefulWidget {
 }
 
 class TransactionListState extends State<TransactionList> {
-  CrudHelper crudHelper = CrudHelper();
+  static CrudHelper crudHelper;
   Map itemMapCache = Map();
   Stream<QuerySnapshot> transactions;
   bool loading = true;
 
   @override
   void initState() {
-    this._updateListView();
     _initializeItemMapCache();
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    UserData userData = Provider.of<UserData>(context);
+    crudHelper = CrudHelper(userData: userData);
+    _updateListView();
   }
 
   @override
@@ -94,6 +103,8 @@ class TransactionListState extends State<TransactionList> {
   Widget _getDescription(BuildContext context, ItemTransaction transaction) {
     ThemeData localTheme = Theme.of(context);
     String itemName = this._getItemName(transaction);
+    debugPrint("VERIFIED IS ${transaction.signature}");
+    String verified = transaction.signature ?? 'N/A';
     String action = transaction.type.isOdd ? "Bought" : "Sold";
     String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
 
@@ -106,7 +117,7 @@ class TransactionListState extends State<TransactionList> {
       Expanded(
           flex: 1,
           child: Column(children: <Widget>[
-            Text("$action: $itemNo $itemName",
+            Text("$action: $itemNo $itemName\nsign: $verified",
                 style: localTheme.textTheme.subhead),
           ])),
       Column(
@@ -156,7 +167,9 @@ class TransactionListState extends State<TransactionList> {
 
   void _initializeItemMapCache() async {
     this.itemMapCache = await StartupCache().itemMap;
-    this.loading = false;
+    setState(() {
+      this.loading = false;
+    });
   }
 
   String _getItemName(ItemTransaction transaction) {

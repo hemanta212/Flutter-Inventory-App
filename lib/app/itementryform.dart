@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/utils/window.dart';
@@ -8,6 +8,7 @@ import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/services/crud.dart';
+import 'package:bk_app/models/user.dart';
 
 class ItemEntryForm extends StatefulWidget {
   final String title;
@@ -27,7 +28,8 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   // Variables
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
-  CrudHelper crudHelper = CrudHelper();
+  static CrudHelper crudHelper;
+  static UserData userData;
 
   String title;
   Item item;
@@ -49,9 +51,16 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   @override
   void initState() {
-    super.initState();
     this.formName = _forms[2];
     this._currentFormSelected = formName;
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    userData = Provider.of<UserData>(context);
+    crudHelper = CrudHelper(userData: userData);
     _initiateItemData();
   }
 
@@ -220,8 +229,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   // Update the title of the Item obj
   void updateItemName() {
     String givenName = this.itemNameController.text;
-    Future<DocumentSnapshot> duplicate =
-        this.crudHelper.getItem('name', givenName);
+    Future<DocumentSnapshot> duplicate = crudHelper.getItem('name', givenName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
       if (value != null && this.itemId != value.documentID) {
@@ -245,7 +253,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   void updateItemNickName() {
     String givenNickName = this.itemNickNameController.text;
     Future<DocumentSnapshot> duplicate =
-        this.crudHelper.getItem('nick_name', givenNickName);
+        crudHelper.getItem('nick_name', givenNickName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
       if (value != null && this.itemId != value.documentID) {
@@ -273,6 +281,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   // Save data to database
   void _save() async {
     String message;
+
+    if (!FormUtils.isDatabaseOwner(userData)) {
+      message = "Permission Denied";
+    }
 
     if (this.item.name == '' || this.stringUnderNickName != '') {
       // item name is set to '' if its duplicate in above function updateIteName
@@ -332,7 +344,13 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void _deleteItemFromDb() async {
     // Case 2: Delete item from database
-    this.crudHelper.deleteItem(this.itemId);
+    if (!FormUtils.isDatabaseOwner(userData)) {
+      WindowUtils.showAlertDialog(
+          this.context, 'Failed!', 'Permission denied!');
+      return;
+    }
+
+    crudHelper.deleteItem(this.itemId);
 
     if (this.widget.forEdit ?? false) {
       WindowUtils.moveToLastScreen(context, modified: true);
@@ -345,6 +363,6 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void refreshItemMapCache() async {
     // refresh item map cache since item is changed.
-    await StartupCache(reload: true).itemMap;
+    await StartupCache(userData: userData, reload: true).itemMap;
   }
 }

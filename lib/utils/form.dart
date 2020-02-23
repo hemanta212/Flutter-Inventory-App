@@ -1,6 +1,6 @@
+import 'package:bk_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:bk_app/services/crud.dart';
 import 'package:bk_app/models/item.dart';
 
 class FormUtils {
@@ -21,27 +21,50 @@ class FormUtils {
     return double.parse(value.toStringAsFixed(round));
   }
 
+  static bool isDatabaseOwner(UserData userData) {
+    return userData.targetEmail == userData.email;
+  }
+
+  static bool _isTransactionOwner(UserData userData, transaction) {
+    return transaction.signature == userData.email;
+  }
+
   static Future<bool> saveTransactionAndUpdateItem(
       transaction, item, String itemId,
-      {String transactionId}) async {
+      {String transactionId, userData}) async {
     Firestore db = Firestore.instance;
     bool success = true;
 
+    String targetEmail = userData.targetEmail;
+    WriteBatch batch = db.batch();
+
     try {
-      WriteBatch batch = db.batch();
       if (transactionId == null) {
+        // Insert operation
         transaction.createdAt = DateTime.now().millisecondsSinceEpoch;
         transaction.date = DateFormat.yMMMd().add_jms().format(DateTime.now());
         if (transaction.type == 1) item.lastStockEntry = transaction.date;
-        batch.setData(
-            db.collection('transactions').document(), transaction.toMap());
-      } else {
-        batch.updateData(db.collection('transactions').document(transactionId),
+        transaction.signature = userData.email;
+        batch.setData(db.collection('$targetEmail-transactions').document(),
             transaction.toMap());
+      } else {
+        // UPdate operation
+        if (!isDatabaseOwner(userData) &&
+            !_isTransactionOwner(userData, transaction)) {
+          return false;
+        } else {
+          transaction.signature = userData.email;
+          batch.updateData(
+              db
+                  .collection('$targetEmail-transactions')
+                  .document(transactionId),
+              transaction.toMap());
+        }
       }
 
       item.used += 1;
-      batch.updateData(db.collection('items').document(itemId), item.toMap());
+      batch.updateData(
+          db.collection('$targetEmail-items').document(itemId), item.toMap());
       batch.commit();
     } catch (e) {
       success = false;
@@ -50,16 +73,25 @@ class FormUtils {
   }
 
   static void deleteTransactionAndUpdateItem(callback, transaction,
-      transactionId, DocumentSnapshot itemSnapshot) async {
+      transactionId, DocumentSnapshot itemSnapshot, userData) async {
     // Sync newly updated item and delete transaction from db in batch
-    CrudHelper crudHelper = CrudHelper();
     Firestore db = Firestore.instance;
     bool success = true;
+    String targetEmail = userData.targetEmail;
+    WriteBatch batch = db.batch();
+
+    if (!isDatabaseOwner(userData) &&
+        !_isTransactionOwner(userData, transaction)) {
+      callback(false);
+      return;
+    }
 
     // Reset item to state before this sales transaction
     if (itemSnapshot.data == null) {
       // condition for orphan transaction cases
-      crudHelper.deleteItemTransaction(transactionId);
+      batch.delete(
+          db.collection('$targetEmail-transactions').document(transactionId));
+      batch.commit();
       callback(success);
       return;
     }
@@ -73,9 +105,10 @@ class FormUtils {
       item.decreaseStock(transaction.items);
     }
     try {
-      WriteBatch batch = db.batch();
-      batch.delete(db.collection('transactions').document(transactionId));
-      batch.updateData(db.collection('items').document(itemSnapshot.documentID),
+      batch.delete(
+          db.collection('$targetEmail-transactions').document(transactionId));
+      batch.updateData(
+          db.collection('$targetEmail-items').document(itemSnapshot.documentID),
           item.toMap());
       batch.commit();
     } catch (e) {

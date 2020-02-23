@@ -1,18 +1,21 @@
 import 'package:bk_app/models/user.dart';
 import 'package:bk_app/services/crud.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  // create user obj based on firebase user
-  User _userFromFirebaseUser(FirebaseUser user) {
-    return user != null ? User(uid: user.uid) : null;
+  UserData _userDataFromUser(FirebaseUser user) {
+    return user == null
+        ? user
+        : UserData(
+            uid: user.uid, email: user.email, verified: user.isEmailVerified);
   }
 
   // auth change user stream
-  Stream<User> get user {
-    return _firebaseAuth.onAuthStateChanged.map(_userFromFirebaseUser);
+  Stream<UserData> get user {
+    return _firebaseAuth.onAuthStateChanged.map(_userDataFromUser);
   }
 
   // sign in with email and password
@@ -29,16 +32,26 @@ class AuthService {
   }
 
   // register with email and password
-  Future register(String email, String password, String username) async {
+  Future register(String email, String password) async {
     try {
       AuthResult result = await _firebaseAuth.createUserWithEmailAndPassword(
           email: email, password: password);
       FirebaseUser user = result.user;
       // create a new document for the user with the uid
-      UserData userData =
-          UserData(uid: user.uid, email: email, username: username);
-      await CrudHelper().addUserData(userData);
-      return _userFromFirebaseUser(user);
+      DocumentSnapshot duplicate =
+          await CrudHelper().getUserData('email', user.email);
+      if (duplicate?.data ?? false) {
+        print("duplicate email");
+        return null;
+      }
+      UserData userData = UserData(
+          uid: user.uid,
+          email: user.email,
+          verified: user.isEmailVerified,
+          roles: Map());
+
+      await CrudHelper().updateUserData(userData);
+      return user;
     } catch (error) {
       print(error.toString());
       return null;
@@ -55,4 +68,3 @@ class AuthService {
     }
   }
 }
-

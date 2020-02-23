@@ -8,10 +8,11 @@ class ItemTransaction {
   String _date;
   String _description;
   int _createdAt;
+  String _signature;
 
   ItemTransaction(
       this._type, this._itemId, this._amount, this._items, this._date,
-      [this._description, this._costPrice]);
+      [this._description, this._costPrice, this._signature]);
 
   String get itemId => _itemId;
 
@@ -31,6 +32,8 @@ class ItemTransaction {
 
   String get description => _description;
 
+  String get signature => _signature;
+
   set itemId(String newItemId) {
     this._itemId = newItemId;
   }
@@ -45,6 +48,10 @@ class ItemTransaction {
 
   set description(String newDesc) {
     this._description = newDesc;
+  }
+
+  set signature(String newVerified) {
+    this._signature = newVerified;
   }
 
   set date(String newDate) {
@@ -80,6 +87,7 @@ class ItemTransaction {
     map['items'] = _items;
     map['cost_price'] = _costPrice;
     map['created_at'] = _createdAt;
+    map['signature'] = _signature;
     return map;
   }
 
@@ -94,5 +102,6 @@ class ItemTransaction {
     this._costPrice = map['cost_price'];
     this._items = map['items'];
     this._createdAt = map['created_at'];
+    this._signature = map['signature'];
   }
 }

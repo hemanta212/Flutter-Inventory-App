@@ -1,51 +1,27 @@
-class User {
-  /// simple small class for bouncing things with firebase auth
-  final String uid;
-  User({this.uid});
-}
-
 class UserData {
   /// More private userData to store general info about users
-  String username;
   String uid;
   String email;
-  UserData({this.uid, this.username, this.email});
+  bool verified;
+  String targetEmail = 'sharmahemanta.212@gmail.com';
+  Map roles;
+  UserData({this.uid, this.email, this.verified, this.roles});
 
   Map<String, dynamic> toMap() {
     var map = Map<String, dynamic>();
-    map['username'] = this.username;
+    map['targetEmail'] = this.targetEmail;
     map['email'] = this.email;
     map['uid'] = this.uid;
+    map['verified'] = this.verified;
+    map['roles'] = this.roles;
     return map;
   }
 
   UserData.fromMapObject(Map<String, dynamic> map) {
     this.uid = map['uid'];
+    this.verified = map['verified'];
     this.email = map['email'];
-    this.username = map['username'];
-  }
-}
-
-class UserContent {
-  /// User generated contents
-  String username;
-  Map roles;
-  Map items;
-  Map transactions;
-
-  Map<String, dynamic> toMap() {
-    var map = Map<String, dynamic>();
-    map['username'] = this.username;
-    map['roles'] = this.roles;
-    map['items'] = this.items;
-    map['transactions'] = this.transactions;
-    return map;
-  }
-
-  UserContent.fromMapObject(Map<String, dynamic> map) {
-    this.username = map['username'];
+    this.targetEmail = map['targetEmail'];
     this.roles = map['roles'];
-    this.items = map['items'];
-    this.transactions = map['transactions'];
   }
 }

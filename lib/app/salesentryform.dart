@@ -1,3 +1,4 @@
+import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -8,6 +9,7 @@ import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
+import 'package:provider/provider.dart';
 
 class SalesEntryForm extends StatefulWidget {
   final String title;
@@ -45,7 +47,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
   String formName;
   String _currentFormSelected;
-  CrudHelper crudHelper = CrudHelper();
+  static CrudHelper crudHelper;
+  static UserData userData;
   List<Map> itemNamesAndNicknames = List<Map>();
 
   String disclaimerText = '';
@@ -62,11 +65,18 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   @override
   void initState() {
+    super.initState();
     this.formName = _forms[0];
     this._currentFormSelected = this.formName;
     _initializeItemNamesAndNicknamesMapCache();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    userData = Provider.of<UserData>(context);
+    crudHelper = CrudHelper(userData: userData);
     _initiateTransactionData();
-    super.initState();
   }
 
   void _initiateTransactionData() {
@@ -93,8 +103,9 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
         });
       }
 
-      Future<DocumentSnapshot> itemSnapshotFuture =
-          this.crudHelper.getItemById(this.transaction.itemId);
+      Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItemById(
+        this.transaction.itemId,
+      );
       itemSnapshotFuture.then((itemSnapshot) {
         if (itemSnapshot.data == null) {
           setState(() {
@@ -273,7 +284,6 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("TITLE IS $title");
     return CustomScaffold.setScaffold(context, title, buildForm);
   }
 
@@ -298,8 +308,10 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   void updateItemName() {
     var name = this.itemNameController.text;
-    Future<DocumentSnapshot> itemSnapshotFuture =
-        this.crudHelper.getItem("name", name);
+    Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItem(
+      "name",
+      name,
+    );
     itemSnapshotFuture.then((itemSnapshot) {
       debugPrint("Update item name got snapshot $itemSnapshot");
       if (itemSnapshot == null) {
@@ -345,8 +357,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       debugPrint("Using swipeData to save");
       itemSnapshot = this.widget.swipeData;
     } else {
-      itemSnapshot =
-          await this.crudHelper.getItemById(this.tempItemId).catchError((e) {
+      itemSnapshot = await crudHelper
+          .getItemById(
+        this.tempItemId,
+      )
+          .catchError((e) {
         return null;
       });
     }
@@ -389,7 +404,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
     bool success = await FormUtils.saveTransactionAndUpdateItem(
         this.transaction, item, itemId,
-        transactionId: this.transactionId);
+        transactionId: this.transactionId, userData: userData);
 
     this.saveCallback(success);
   }
@@ -403,14 +418,14 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     } else {
       // Initialize the item to reset it.
       DocumentSnapshot itemSnapshot =
-          await this.crudHelper.getItemById(this.transaction.itemId);
+          await crudHelper.getItemById(this.transaction.itemId);
 
       // Case 2: Delete item from database after user confirms again
       WindowUtils.showAlertDialog(context, "Delete?",
           "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
-            this.transaction, this.transactionId, itemSnapshot);
+            this.transaction, this.transactionId, itemSnapshot, userData);
       });
     }
   }
@@ -435,7 +450,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   void refreshItemTransactionMapCache() async {
     // refresh item transaction map cache since transaction is changed.
-    await StartupCache(reload: true).itemTransactionMap;
+    await StartupCache(userData: userData, reload: true).itemTransactionMap;
   }
 
   void _initializeItemNamesAndNicknamesMapCache() async {
