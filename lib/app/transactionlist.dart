@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
 import 'package:bk_app/app/salesOverview.dart';
@@ -26,7 +27,9 @@ class TransactionListState extends State<TransactionList> {
   static CrudHelper crudHelper;
   Map itemMapCache = Map();
   Stream<QuerySnapshot> transactions;
+  QuerySnapshot pendingTransactions;
   bool loading = true;
+  static UserData userData;
 
   @override
   void initState() {
@@ -37,27 +40,43 @@ class TransactionListState extends State<TransactionList> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    UserData userData = Provider.of<UserData>(context);
-    crudHelper = CrudHelper(userData: userData);
-    _updateListView();
+    userData = Provider.of<UserData>(context);
+    if (userData != null) {
+      crudHelper = CrudHelper(userData: userData);
+      _updateListView();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Transactions"),
-      ),
-      drawer: CustomScaffold.setDrawer(context),
-      body: getTransactionListView(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          this._showTransactionProfit();
-        },
-        tooltip: 'Caclulate Profit',
-        child: Icon(Icons.book),
-      ),
-    );
+    if (userData == null) {
+      return Wrapper();
+    }
+    List<Tab> viewTabs = <Tab>[
+      Tab(text: "History"),
+      Tab(text: "Pending"),
+    ];
+    return DefaultTabController(
+        length: viewTabs.length,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text("Transactions"),
+            bottom: TabBar(tabs: viewTabs),
+          ),
+          drawer: CustomScaffold.setDrawer(context),
+          body: TabBarView(children: <Widget>[
+            // Center(child: Icon(Icons.add)),
+            getTransactionListView(),
+            showPendingTransactions(),
+          ]),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              this._showTransactionProfit();
+            },
+            tooltip: 'Caclulate Profit',
+            child: Icon(Icons.book),
+          ),
+        ));
   }
 
   StreamBuilder getTransactionListView() {
@@ -100,10 +119,44 @@ class TransactionListState extends State<TransactionList> {
     );
   }
 
+  Widget showPendingTransactions() {
+    if (this.pendingTransactions != null) {
+      return ListView.builder(
+        itemCount: this.pendingTransactions.documents.length,
+        itemBuilder: (BuildContext context, int index) {
+          DocumentSnapshot transactionSnapshot =
+              this.pendingTransactions.documents[index];
+          ItemTransaction transaction =
+              ItemTransaction.fromMapObject(transactionSnapshot.data);
+          return Card(
+              color: Colors.white,
+              elevation: 2.0,
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.red,
+                  child: Icon(Icons.keyboard_arrow_right),
+                ),
+                title: this._getDescription(context, transaction),
+                subtitle: Text(
+                  "Amount: Rs. " +
+                      FormUtils.fmtToIntIfPossible(transaction.amount),
+                ),
+                onTap: () {
+                  String transactionId = transactionSnapshot.documentID;
+                  _navigateToDetail(transaction, 'Edit Item',
+                      transactionId: transactionId);
+                },
+              ));
+        },
+      );
+    } else {
+      return Loading();
+    }
+  }
+
   Widget _getDescription(BuildContext context, ItemTransaction transaction) {
     ThemeData localTheme = Theme.of(context);
     String itemName = this._getItemName(transaction);
-    debugPrint("VERIFIED IS ${transaction.signature}");
     String verified = transaction.signature ?? 'N/A';
     String action = transaction.type.isOdd ? "Bought" : "Sold";
     String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
@@ -159,9 +212,23 @@ class TransactionListState extends State<TransactionList> {
     }
   }
 
-  void _updateListView() {
+  void _updateListView() async {
+    QuerySnapshot pendingTransactions =
+        await crudHelper.getPendingTransactionQuerySnapshot();
+    debugPrint("Printing things ${pendingTransactions.documents.length}");
+    pendingTransactions.documents.removeWhere((DocumentSnapshot doc) {
+      if (doc.data['signature'] == userData.targetEmail) {
+        return true;
+      } else {
+        debugPrint("Email is ${doc.data['signature']} not removing");
+        return false;
+      }
+    });
+    debugPrint("Printing things ${pendingTransactions.documents.length}");
     setState(() {
       this.transactions = crudHelper.getItemTransactions();
+      debugPrint("Printing things ${pendingTransactions.documents}");
+      this.pendingTransactions = pendingTransactions;
     });
   }
 

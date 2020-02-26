@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/app/itementryform.dart';
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
@@ -23,6 +24,7 @@ class ItemList extends StatefulWidget {
 class ItemListState extends State<ItemList> {
   static CrudHelper crudHelper;
   Stream<QuerySnapshot> items;
+  static UserData userData;
 
   @override
   void initState() {
@@ -32,13 +34,18 @@ class ItemListState extends State<ItemList> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    UserData userData = Provider.of<UserData>(context);
-    crudHelper = CrudHelper(userData: userData);
-    _updateListView();
+    userData = Provider.of<UserData>(context);
+    if (userData != null) {
+      crudHelper = CrudHelper(userData: userData);
+      _updateListView();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (userData == null) {
+      return Wrapper();
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text("Items"),

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/authenticate/authenticate.dart';
-import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/itemlist.dart';
 
 class Wrapper extends StatelessWidget {
@@ -21,7 +20,7 @@ class Wrapper extends StatelessWidget {
       return Authenticate();
     } else {
       _initializeCache(startupCache);
-      return ItemList();// SalesEntryForm(title: "Sales Entry");
+      return ItemList(); // SalesEntryForm(title: "Sales Entry");
     }
   }
 

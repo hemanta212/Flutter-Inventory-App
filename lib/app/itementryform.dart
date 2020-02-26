@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
+import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
@@ -60,8 +61,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     userData = Provider.of<UserData>(context);
-    crudHelper = CrudHelper(userData: userData);
-    _initiateItemData();
+    if (userData != null) {
+      crudHelper = CrudHelper(userData: userData);
+      _initiateItemData();
+    }
   }
 
   void _initiateItemData() {
@@ -217,6 +220,9 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (userData == null) {
+      return Wrapper();
+    }
     return WillPopScope(
       onWillPop: () {
         // When user presses the back button write some code to control

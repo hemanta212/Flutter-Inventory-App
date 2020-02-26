@@ -3,9 +3,7 @@ import 'package:bk_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:bk_app/models/item.dart';
-import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/services/auth.dart';
-import 'package:provider/provider.dart';
 
 class CrudHelper {
   AuthService auth = AuthService();
@@ -14,9 +12,10 @@ class CrudHelper {
 
   // Item
   Future<int> addItem(Item item) async {
-    if (this.userData.targetEmail == this.userData.email) {
+      String targetEmail = this.userData.targetEmail;
+    if (targetEmail == this.userData.email) {
       await Firestore.instance
-          .collection('${this.userData.targetEmail}-items')
+          .collection('$targetEmail-items')
           .add(item.toMap())
           .catchError((e) {
         print(e);
@@ -29,9 +28,10 @@ class CrudHelper {
   }
 
   Future<int> updateItem(String itemId, Item newItem) async {
-    if (this.userData.targetEmail == this.userData.email) {
+      String targetEmail = this.userData.targetEmail;
+    if (targetEmail == this.userData.email) {
       await Firestore.instance
-          .collection('items')
+          .collection('$targetEmail-items')
           .document(itemId)
           .updateData(newItem.toMap())
           .catchError((e) {
@@ -45,9 +45,10 @@ class CrudHelper {
   }
 
   Future<int> deleteItem(String itemId) async {
-    if (this.userData.targetEmail == this.userData.email) {
+      String targetEmail = this.userData.targetEmail;
+    if (targetEmail == this.userData.email) {
       await Firestore.instance
-          .collection('items')
+          .collection('$targetEmail-items')
           .document(itemId)
           .delete()
           .catchError((e) {
@@ -97,7 +98,6 @@ class CrudHelper {
   }
 
   Future<QuerySnapshot> getItemQuerySnapshot() {
-    print("hello subha bihani ${this.userData.email} ${this.userData.targetEmail}");
     String email = this.userData.targetEmail;
     return Firestore.instance
         .collection('$email-items')
@@ -105,65 +105,12 @@ class CrudHelper {
         .getDocuments();
   }
 
-// Item Transaction
-  /*
-  Future<int> addItemTransaction(ItemTransaction transaction) async {
-    if (this.userData.targetEmail == this.userData.email) {
-      transaction.verified = true;
-    } else {
-        print("yes turning to false");
-      transaction.verified = false;
-        print("yes turned to false ${transaction.verified}");
-    }
-    await Firestore.instance
-        .collection('${this.userData.targetEmail}-transactions')
-        .add(transaction.toMap())
-        .catchError((e) {
-      print(e);
-      return 0;
-    });
-    return 1;
-  }
-
-  Future<int> updateItemTransaction(
-      String transactionId, ItemTransaction newItemTransaction) async {
-    if (this.userData.targetEmail == this.userData.email) {
-      newItemTransaction.verified = true;
-    } else {
-      newItemTransaction.verified = false;
-    }
-    await Firestore.instance
-        .collection('transactions')
-        .document(transactionId)
-        .updateData(newItemTransaction.toMap())
-        .catchError((e) {
-      print(e);
-      return 0;
-    });
-    return 1;
-  }
-
-  Future<int> deleteItemTransaction(String transactionId) async {
-    if (this.userData.targetEmail == this.userData.email) {
-      await Firestore.instance
-          .collection('transactions')
-          .document(transactionId)
-          .delete()
-          .catchError((e) {
-        print(e);
-        return 0;
-      });
-      return 1;
-    } else {
-      return 0;
-    }
-  }
-  */
-
+  // Item Transactions
   Stream<QuerySnapshot> getItemTransactions() {
     String email = this.userData.targetEmail;
     return Firestore.instance
         .collection('$email-transactions')
+        .where('signature', isEqualTo: email)
         .orderBy('created_at', descending: true)
         .snapshots();
   }
@@ -173,6 +120,21 @@ class CrudHelper {
     return Firestore.instance
         .collection('$email-transactions')
         .orderBy('created_at', descending: true)
+        .where('signature', isEqualTo: email)
+        .getDocuments();
+  }
+
+  Future<QuerySnapshot> getPendingTransactionQuerySnapshot() async {
+    String email = this.userData.targetEmail;
+    UserData user = await this
+        .getUserData('email', email)
+        .then((snapshot) => UserData.fromMapObject(snapshot.data));
+    List roles = user.roles.keys.toList();
+    print("roles $roles");
+    return Firestore.instance
+        .collection('$email-transactions')
+        .orderBy('created_at', descending: false)
+        .where('signature', whereIn: roles)
         .getDocuments();
   }
 
@@ -208,7 +170,6 @@ class CrudHelper {
     return userData;
   }
 
-// Item
   Future<int> updateUserData(UserData userData) async {
     await Firestore.instance
         .collection('users')

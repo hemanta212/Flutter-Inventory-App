@@ -55,7 +55,7 @@ class CustomScaffold {
     ]));
   }
 
-  static Widget setAppBar(title) {
+  static Widget setAppBar(title, context) {
     return AppBar(
       title: Text(title),
     );
@@ -64,7 +64,7 @@ class CustomScaffold {
   static Widget setScaffold(BuildContext context, String title, var getBody,
       {appBar = setAppBar}) {
     return Scaffold(
-      appBar: appBar(title),
+      appBar: appBar(title, context),
       drawer: setDrawer(context),
       body: getBody(context),
     ); // Scaffold

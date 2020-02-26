@@ -25,7 +25,7 @@ class FormUtils {
     return userData.targetEmail == userData.email;
   }
 
-  static bool _isTransactionOwner(UserData userData, transaction) {
+  static bool isTransactionOwner(UserData userData, transaction) {
     return transaction.signature == userData.email;
   }
 
@@ -48,9 +48,9 @@ class FormUtils {
         batch.setData(db.collection('$targetEmail-transactions').document(),
             transaction.toMap());
       } else {
-        // UPdate operation
+        // Update operation
         if (!isDatabaseOwner(userData) &&
-            !_isTransactionOwner(userData, transaction)) {
+            !isTransactionOwner(userData, transaction)) {
           return false;
         } else {
           transaction.signature = userData.email;
@@ -63,8 +63,16 @@ class FormUtils {
       }
 
       item.used += 1;
-      batch.updateData(
-          db.collection('$targetEmail-items').document(itemId), item.toMap());
+
+      if (isDatabaseOwner(userData)) {
+        // Item should only be modified by the owner of database. When some one other that owner creates or
+        // updates the transactins items is not changed and only transaction change with the sign of them
+        // Later when owner accepts it (by just resaving) this condition is passed and item is changed
+        print("db owner so updating item $item");
+        batch.updateData(
+            db.collection('$targetEmail-items').document(itemId), item.toMap());
+      }
+
       batch.commit();
     } catch (e) {
       success = false;
@@ -81,14 +89,20 @@ class FormUtils {
     WriteBatch batch = db.batch();
 
     if (!isDatabaseOwner(userData) &&
-        !_isTransactionOwner(userData, transaction)) {
+        !isTransactionOwner(userData, transaction)) {
       callback(false);
       return;
     }
 
-    // Reset item to state before this sales transaction
-    if (itemSnapshot.data == null) {
-      // condition for orphan transaction cases
+    if (itemSnapshot?.data == null || !isDatabaseOwner(userData)) {
+      //Condition 1:
+      // Those transaction whose relating item are deleted are orphan transactions
+      // The item associated can't be modified so we can just delete transaction only
+
+      //Condition 2:
+      // The case is similar for transactions not created by owner they are classified as
+      // draft and item associated to them should not change until owner verfies/owns it.
+
       batch.delete(
           db.collection('$targetEmail-transactions').document(transactionId));
       batch.commit();
@@ -96,6 +110,7 @@ class FormUtils {
       return;
     }
 
+    // Reset item to state before this sales transaction
     Item item = Item.fromMapObject(itemSnapshot.data);
     item.used += 1;
 

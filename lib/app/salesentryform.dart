@@ -2,11 +2,13 @@ import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/services/crud.dart';
 import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/cache.dart';
+import 'package:bk_app/utils/loading.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
 import 'package:provider/provider.dart';
@@ -47,10 +49,10 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
   String formName;
   String _currentFormSelected;
+
   static CrudHelper crudHelper;
   static UserData userData;
   List<Map> itemNamesAndNicknames = List<Map>();
-
   String disclaimerText = '';
   String stringUnderName = '';
   String tempItemId;
@@ -68,15 +70,19 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     super.initState();
     this.formName = _forms[0];
     this._currentFormSelected = this.formName;
-    _initializeItemNamesAndNicknamesMapCache();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     userData = Provider.of<UserData>(context);
-    crudHelper = CrudHelper(userData: userData);
-    _initiateTransactionData();
+    if (userData != null) {
+      crudHelper = CrudHelper(userData: userData);
+      _initiateTransactionData();
+      _initializeItemNamesAndNicknamesMapCache();
+    } else {
+      Loading();
+    }
   }
 
   void _initiateTransactionData() {
@@ -107,7 +113,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
         this.transaction.itemId,
       );
       itemSnapshotFuture.then((itemSnapshot) {
-        if (itemSnapshot.data == null) {
+        if (itemSnapshot?.data == null) {
           setState(() {
             this.disclaimerText =
                 'Orphan Transaction: The item associated with this transaction has been deleted';
@@ -284,6 +290,9 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (userData == null) {
+      return Wrapper();
+    }
     return CustomScaffold.setScaffold(context, title, buildForm);
   }
 
@@ -377,14 +386,17 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     double items = double.parse(this.itemNumberController.text).abs();
 
     // Additional checks.
-    if (this.transactionId == null && this.transaction.itemId != itemId) {
+    if ((this.transactionId == null && this.transaction.itemId != itemId) ||
+        _beingApproved()) {
       // Case insert
       if (item.totalStock < items) {
         _alertFail("Empty stock. Cannot sell.");
         return;
-      } else {
-        item.decreaseStock(items);
       }
+
+      // Cp of transaction is set only once during insert.
+      this.transaction.costPrice = item.costPrice;
+      item.decreaseStock(items);
     } else {
       // Case update
       debugPrint(
@@ -400,13 +412,18 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
     this.transaction.itemId = itemId;
     this.transaction.items = items;
-    this.transaction.costPrice = item.costPrice;
 
     bool success = await FormUtils.saveTransactionAndUpdateItem(
         this.transaction, item, itemId,
         transactionId: this.transactionId, userData: userData);
 
     this.saveCallback(success);
+  }
+
+  bool _beingApproved() {
+    // If current user is database owner and trnsaction is not from him he is approving it.
+    return FormUtils.isDatabaseOwner(userData) &&
+        !FormUtils.isTransactionOwner(userData, this.transaction);
   }
 
   void _delete() async {

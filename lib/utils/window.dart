@@ -94,6 +94,7 @@ class WindowUtils {
     if (value.isEmpty) {
       return "Please enter $labelText";
     }
+    return null;
   }
 
   static Widget genTextField(
