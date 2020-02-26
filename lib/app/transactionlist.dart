@@ -89,11 +89,11 @@ class TransactionListState extends State<TransactionList> {
       child: Row(
         children: <Widget>[
           IconButton(
-              icon: Icon(Icons.menu),
+              icon: Icon(Icons.card_travel),
               onPressed: () => WindowUtils.navigateToPage(context,
-                  target: 'Month History', caller: 'Transactions')),
+                  target: 'Transactions', caller: 'Transactions')),
           SizedBox(width:220.0),
-          IconButton(icon: Icon(Icons.tablet), onPressed: () =>
+          IconButton(icon: Icon(Icons.history), onPressed: () =>
                 WindowUtils.navigateToPage(context,
                   target: 'Month History', caller: 'Transactions'))
         ],

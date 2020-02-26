@@ -6,6 +6,7 @@ import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/itemlist.dart';
 import 'package:bk_app/app/transactionlist.dart';
+import 'package:bk_app/app/settings.dart';
 import 'package:bk_app/services/auth.dart';
 
 class MainView extends StatelessWidget {
@@ -24,6 +25,7 @@ class MainView extends StatelessWidget {
               SalesEntryForm(title: "Sales Entry"),
           "/itemList": (BuildContext context) => ItemList(),
           "/transactionList": (BuildContext context) => TransactionList(),
+          "/settings": (BuildContext context) => Setting(),
         },
         home: Wrapper(),
       ),

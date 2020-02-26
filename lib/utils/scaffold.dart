@@ -1,12 +1,10 @@
 import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
-import 'package:bk_app/services/auth.dart';
 import 'package:provider/provider.dart';
 
 class CustomScaffold {
   static Widget setDrawer(context) {
     UserData userData = Provider.of<UserData>(context);
-    AuthService _auth = AuthService();
 
     return Drawer(
         child: ListView(padding: EdgeInsets.zero, children: <Widget>[
@@ -45,11 +43,11 @@ class CustomScaffold {
             Navigator.of(context).pushNamed("/transactionList");
           }),
       ListTile(
-        leading: Icon(Icons.person),
-        title: Text('logout'),
-        onTap: () async {
+        leading: Icon(Icons.settings),
+        title: Text('Settings'),
+        onTap: () {
           Navigator.of(context).pop();
-          await _auth.signOut();
+          Navigator.of(context).pushNamed("/settings");
         },
       ),
     ]));

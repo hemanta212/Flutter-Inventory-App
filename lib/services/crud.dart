@@ -63,6 +63,7 @@ class CrudHelper {
 
   Stream<QuerySnapshot> getItems() {
     String email = this.userData.targetEmail;
+    print("Stream current target email $email");
     return Firestore.instance
         .collection('$email-items')
         .orderBy('used', descending: true)
@@ -131,6 +132,7 @@ class CrudHelper {
         .then((snapshot) => UserData.fromMapObject(snapshot.data));
     List roles = user.roles.keys.toList();
     print("roles $roles");
+    if (roles.isEmpty) return null;
     return Firestore.instance
         .collection('$email-transactions')
         .orderBy('created_at', descending: false)
