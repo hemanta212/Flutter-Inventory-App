@@ -3,6 +3,8 @@ import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:bk_app/app/itementryform.dart';
 import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
+import 'package:bk_app/app/monthHistory.dart';
+import 'package:bk_app/app/transactionlist.dart';
 
 class WindowUtils {
   static Widget getCard(String label, {color = Colors.white}) {
@@ -16,12 +18,14 @@ class WindowUtils {
             )));
   }
 
-  static void dropDownItemSelected(BuildContext context,
+  static void navigateToPage(BuildContext context,
       {String caller, String target}) async {
     Map _stringToForm = {
       'Item Entry': ItemEntryForm(title: target),
       'Sales Entry': SalesEntryForm(title: target),
       'Stock Entry': StockEntryForm(title: target),
+      'Month History': MonthlyHistory(),
+      'Transactions': TransactionList(),
     };
 
     if (caller == target) {

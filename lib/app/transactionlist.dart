@@ -30,6 +30,7 @@ class TransactionListState extends State<TransactionList> {
   QuerySnapshot pendingTransactions;
   bool loading = true;
   static UserData userData;
+  Map currentMonthHistory = Map();
 
   @override
   void initState() {
@@ -65,7 +66,6 @@ class TransactionListState extends State<TransactionList> {
           ),
           drawer: CustomScaffold.setDrawer(context),
           body: TabBarView(children: <Widget>[
-            // Center(child: Icon(Icons.add)),
             getTransactionListView(),
             showPendingTransactions(),
           ]),
@@ -76,7 +76,29 @@ class TransactionListState extends State<TransactionList> {
             tooltip: 'Caclulate Profit',
             child: Icon(Icons.book),
           ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerDocked,
+          bottomNavigationBar: buildBottomAppBar(context),
         ));
+  }
+
+  static BottomAppBar buildBottomAppBar(BuildContext context) {
+    return BottomAppBar(
+      shape: CircularNotchedRectangle(),
+      color: Theme.of(context).primaryColor,
+      child: Row(
+        children: <Widget>[
+          IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () => WindowUtils.navigateToPage(context,
+                  target: 'Month History', caller: 'Transactions')),
+          SizedBox(width:220.0),
+          IconButton(icon: Icon(Icons.tablet), onPressed: () =>
+                WindowUtils.navigateToPage(context,
+                  target: 'Month History', caller: 'Transactions'))
+        ],
+      ),
+    );
   }
 
   StreamBuilder getTransactionListView() {
@@ -95,15 +117,16 @@ class TransactionListState extends State<TransactionList> {
                   color: Colors.white,
                   elevation: 2.0,
                   child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.red,
-                      child: Icon(Icons.keyboard_arrow_right),
+                    leading: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        SizedBox(height: 10.0),
+                        Text("Amount"),
+                        Text(
+                            "Rs. ${FormUtils.fmtToIntIfPossible(transaction.amount)}"),
+                      ],
                     ),
                     title: this._getDescription(context, transaction),
-                    subtitle: Text(
-                      "Amount: Rs. " +
-                          FormUtils.fmtToIntIfPossible(transaction.amount),
-                    ),
                     onTap: () {
                       String transactionId = itemTransactionSnapshot.documentID;
                       _navigateToDetail(transaction, 'Edit Item',
@@ -132,15 +155,16 @@ class TransactionListState extends State<TransactionList> {
               color: Colors.white,
               elevation: 2.0,
               child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.red,
-                  child: Icon(Icons.keyboard_arrow_right),
+                leading: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    SizedBox(height: 20.0),
+                    Text("Amount"),
+                    Text("Rs. ${transaction.amount}"),
+                  ],
                 ),
                 title: this._getDescription(context, transaction),
-                subtitle: Text(
-                  "Amount: Rs. " +
-                      FormUtils.fmtToIntIfPossible(transaction.amount),
-                ),
+                subtitle: Text(transaction.signature),
                 onTap: () {
                   String transactionId = transactionSnapshot.documentID;
                   _navigateToDetail(transaction, 'Edit Item',
@@ -157,7 +181,6 @@ class TransactionListState extends State<TransactionList> {
   Widget _getDescription(BuildContext context, ItemTransaction transaction) {
     ThemeData localTheme = Theme.of(context);
     String itemName = this._getItemName(transaction);
-    String verified = transaction.signature ?? 'N/A';
     String action = transaction.type.isOdd ? "Bought" : "Sold";
     String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
 
@@ -170,7 +193,7 @@ class TransactionListState extends State<TransactionList> {
       Expanded(
           flex: 1,
           child: Column(children: <Widget>[
-            Text("$action: $itemNo $itemName\nsign: $verified",
+            Text("$action: $itemNo units\n$itemName",
                 style: localTheme.textTheme.subhead),
           ])),
       Column(
@@ -213,22 +236,10 @@ class TransactionListState extends State<TransactionList> {
   }
 
   void _updateListView() async {
-    QuerySnapshot pendingTransactions =
+    this.pendingTransactions =
         await crudHelper.getPendingTransactionQuerySnapshot();
-    debugPrint("Printing things ${pendingTransactions.documents.length}");
-    pendingTransactions.documents.removeWhere((DocumentSnapshot doc) {
-      if (doc.data['signature'] == userData.targetEmail) {
-        return true;
-      } else {
-        debugPrint("Email is ${doc.data['signature']} not removing");
-        return false;
-      }
-    });
-    debugPrint("Printing things ${pendingTransactions.documents.length}");
     setState(() {
       this.transactions = crudHelper.getItemTransactions();
-      debugPrint("Printing things ${pendingTransactions.documents}");
-      this.pendingTransactions = pendingTransactions;
     });
   }
 

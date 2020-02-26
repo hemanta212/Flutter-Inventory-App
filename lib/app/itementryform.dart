@@ -98,7 +98,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
         }).toList(),
 
         onChanged: (String newValueSelected) {
-          WindowUtils.dropDownItemSelected(context,
+          WindowUtils.navigateToPage(context,
               caller: this.formName, target: newValueSelected);
         }, //onChanged
 

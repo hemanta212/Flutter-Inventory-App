@@ -133,7 +133,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
         }).toList(),
 
         onChanged: (String newValueSelected) {
-          WindowUtils.dropDownItemSelected(context,
+          WindowUtils.navigateToPage(context,
               caller: this.formName, target: newValueSelected);
         }, //onChanged
 
