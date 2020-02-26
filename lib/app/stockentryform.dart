@@ -2,6 +2,7 @@ import 'package:bk_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/form.dart';
@@ -72,8 +73,10 @@ class _StockEntryFormState extends State<StockEntryForm> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     userData = Provider.of<UserData>(context);
-    crudHelper = CrudHelper(userData: userData);
-    _initiateTransactionData();
+    if (userData != null) {
+      crudHelper = CrudHelper(userData: userData);
+      _initiateTransactionData();
+    }
   }
 
   void _initiateTransactionData() {
@@ -100,7 +103,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
         this.transaction.itemId,
       );
       itemSnapshotFuture.then((itemSnapshot) {
-        if (itemSnapshot.data == null) {
+        if (itemSnapshot?.data == null) {
           setState(() {
             this.disclaimerText =
                 'Orphan Transaction: The item associated with this transaction has been deleted';
@@ -201,7 +204,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
                       textStyle: textStyle,
                       controller: this.costPriceController,
                       keyboardType: TextInputType.number,
-                      onChanged: this.updateCostPrice,
+                      onChanged: () {},
                     ),
 
                     // Marked price
@@ -282,6 +285,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (userData == null) {
+      return Wrapper();
+    }
     return CustomScaffold.setScaffold(context, this.title, buildForm);
   }
 
@@ -308,10 +314,6 @@ class _StockEntryFormState extends State<StockEntryForm> {
   void updateDuePrice() {
     this.transaction.dueAmount =
         double.parse(this.duePriceController.text).abs();
-  }
-
-  void updateCostPrice() {
-    this.transaction.amount = double.parse(this.costPriceController.text).abs();
   }
 
   void updateTransactionDescription() {
@@ -348,8 +350,6 @@ class _StockEntryFormState extends State<StockEntryForm> {
       );
     }
 
-    debugPrint(
-        "Stock entry got itemSnapshot $itemSnapshot & data ${itemSnapshot.data}");
     if (itemSnapshot.data == null) {
       WindowUtils.showAlertDialog(
           this.context, "Failed!", "Item not registered");
@@ -359,35 +359,50 @@ class _StockEntryFormState extends State<StockEntryForm> {
     Item item = Item.fromMapObject(itemSnapshot.data);
     String itemId = itemSnapshot.documentID;
     double items = double.parse(this.itemNumberController.text).abs();
-    double cpPerItem = this.transaction.amount / items;
-    double netAddition;
+    double totalCostPrice = double.parse(this.costPriceController.text).abs();
 
-    if (this.transactionId != null && this.transaction.itemId == itemId) {
+    if (this.transactionId != null &&
+        this.transaction.itemId == itemId &&
+        !_beingApproved()) {
+      // Condition 1st:
+      // If there is id then its oviously update case
+      // Condition 2nd:
+      // Confirm that the updated transaction points to same item otherwise insert case
+      // Condition 3rd:
+      // We also label a transaction as new (only here) if transaction by other is being owner approved
+      // This is because the item is not modified (during db save) when other create/modify it.
+
       // Update case.
-      debugPrint("Update case stock entry");
-      netAddition = items - this.transaction.items;
-      /*
-      if (this.transaction.date == item.lastStockEntry) {
-        item.modifyLatestStockEntry('stock', netAddition);
-        item.modifyLatestStockEntry('price', cpPerItem);
+      if (item.lastStockEntry == this.transaction.date) {
+        // For latest transaction
+        item.modifyLatestStockEntry(
+            this.transaction, items, totalCostPrice);
       }
-      */
     } else {
-      // item.costPriceStocks = {cpPerItem: items};
-      netAddition = items;
+      // Insert case
+      var newCpAndTotalStock =
+          item.getNewCostPriceAndStock(totalCostPrice, items);
+      item.costPrice = newCpAndTotalStock[0];
+      item.totalStock = newCpAndTotalStock[1];
     }
 
-    item.costPrice = cpPerItem;
     this.transaction.itemId = itemId;
     this.transaction.items = items;
     item.markedPrice = double.parse(this.markedPriceController.text).abs();
-    item.increaseStock(netAddition);
+
+    this.transaction.amount = totalCostPrice;
 
     bool success = await FormUtils.saveTransactionAndUpdateItem(
         this.transaction, item, itemId,
         transactionId: this.transactionId, userData: userData);
 
     this.saveCallback(success);
+  }
+
+  bool _beingApproved() {
+    // If current user is database owner and trnsaction is not from him he is approving it.
+    return FormUtils.isDatabaseOwner(userData) &&
+        !FormUtils.isTransactionOwner(userData, this.transaction);
   }
 
   // Delete item data

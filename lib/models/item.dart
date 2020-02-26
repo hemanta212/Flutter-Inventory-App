@@ -23,13 +23,6 @@ class Item {
 
   String get lastStockEntry => _lastStockEntry;
 
-  /*
-  double get costPrice {
-    print("Cost price stocks ${this._costPriceStocks}");
-    Map avgCostPriceStocks = _getAvgCostPrice(this._costPriceStocks);
-    return avgCostPriceStocks.keys.first;
-  }
-  */
   double get costPrice => _costPrice;
 
   String get description => _description;
@@ -64,20 +57,6 @@ class Item {
     this._used = newUsed;
   }
 
-  /*
-  set costPriceStocks(Map newCostPriceStocksMap) {
-    if (this._costPriceStocks == null) this._costPriceStocks = Map();
-    if (this._costPriceStocks.length >= 2) {
-      Map avgCostPriceMap = _getAvgCostPrice(this._costPriceStocks);
-      avgCostPriceMap.addAll(newCostPriceStocksMap);
-      this._costPriceStocks = avgCostPriceMap;
-    } else {
-      this._costPriceStocks.addAll(newCostPriceStocksMap);
-      print(
-          "$newCostPriceStocksMap item costPriceStocks ${this._costPriceStocks}");
-    }
-  }
-  */
   set costPrice(double newCostPrice) {
     this._costPrice = newCostPrice;
   }
@@ -98,42 +77,62 @@ class Item {
     this._totalStock -= soldStock;
   }
 
-  /*
-  Map _getAvgCostPrice(Map costPrices) {
-    // Basically takes a Map of costPrice and stocks and condense
-    // them by calculating a single costPrie that represents all
-    // suppose we buy 10 items 'A' in 100 and 5 'B' in 200.
-    // We have two CP's but SP is always one at a time here we will
-    // sell in 250 here profit becomes 15 * 250 - (10 * 100 + 5 * 200)
-    // Can we get a combined cp that gives the same profit?
-    // Just get avg. Avg cp = (100 * 10 + 200 * 5 ) / (10 + 5 )
+  List<double> getNewCostPriceAndStock(
+      double totalCostPriceOfTransaction, double noOfItemsInTransaction) {
+    /// We average the two cp thus calculating a new equivalent cp
 
-    if (costPrices.isEmpty) return {0.0: 0.0};
-    Map avgCostPrice = Map();
-    double priceSum = 0.0;
-    double totalItems = 0.0;
-    costPrices.forEach((price, stocks) {
-      totalItems += stocks;
-      priceSum += price * stocks;
-    });
-    double avgPrice = priceSum / totalItems;
-    avgCostPrice[avgPrice] = totalItems;
-    return avgCostPrice;
+    /// Suppose we buy 10 items 'A' in 100 and 5 'B' in 200.
+    /// We have two CP's but SP is always one at a time here we will
+    /// sell in 250 here profit becomes 15 * 250 - (10 * 100 + 5 * 200)
+    /// Can we get a combined cp that gives the same profit?
+    /// Just get avg. Avg cp = (100 * 10 + 200 * 5 ) / (10 + 5 )
+
+    // If new item just register first transaction as is.
+    if (this._costPrice == null)
+      return [
+        totalCostPriceOfTransaction / noOfItemsInTransaction,
+        noOfItemsInTransaction
+      ];
+
+    double currentCp = this._costPrice;
+    double totalCurrentCpOfStocks = currentCp * this._totalStock;
+    double totalCp = totalCurrentCpOfStocks + totalCostPriceOfTransaction;
+    double totalItems = this._totalStock + noOfItemsInTransaction;
+    double newCp = totalCp / totalItems;
+    return [newCp, totalItems];
   }
 
-  void modifyLatestStockEntry(String field, double value) {
-    double currentStock = this._costPriceStocks.values.last;
-    double currentPrice = this._costPriceStocks.keys.last;
-    if (field == 'price') {
-      double newPrice = value;
-      this._costPriceStocks.remove(currentPrice);
-      this._costPriceStocks[newPrice] = currentStock;
-    } else if (field == 'stock') {
-      currentStock += value;
-      this._costPriceStocks[currentPrice] = currentStock;
-    }
+  void modifyLatestStockEntry(transaction, double newNoOfItemsInTransaction,
+      double newTotalCostPriceOfTransaction) {
+    /// Retrieves and redo the current costPrice calculation
+    /// So when 6 units costing $10 each and 4 units costing 20 each are
+    /// Combined by above cp method, it gives combined CP of $14 for (6 + 4 = 10) units.
+    /// When user comes later to say that he was mistaken and it was 5 units
+    /// costing $25 each (not 4 & $20) then we have to recover the already done calculation
+    /// and redo it. This function does it.
+    /// It takes the faulty stock entry transaction ( 4 & $20), then from current total
+    /// stock of 10 retrieves the old totalstock (6) and through equation 14 = (4*20 + 6*x) / (6+4)
+    /// which was used to take out the avg CP($14), takes the unknown X (oldCp before faulty transaction)
+    /// Now since we know old 6 and $10 and new correct 5 and $25 we can reapply the formula to get CP.
+
+    // confirm the transaction type as incoming or stock entry (1)
+    assert(transaction.type == 1);
+    // Retrieve old cp and totalStock before faulty transaction
+    double oldTransactionItems = transaction.items;
+    double oldTransactionCostPrice = transaction.amount / oldTransactionItems;
+    print("Got old transaction cp $oldTransactionCostPrice and items $oldTransactionItems");
+    double oldTotalStock = this._totalStock - oldTransactionItems;
+    double oldTotalCostPrice = ((this._costPrice * this._totalStock) -
+        (oldTransactionItems * oldTransactionCostPrice)).abs();
+
+    print("Got total costprice of old $oldTotalCostPrice & items $oldTotalStock");
+    // Reapply to get new cp from new updated transaction info
+    double totalCp = oldTotalCostPrice + newTotalCostPriceOfTransaction;
+    double totalItems = oldTotalStock + newNoOfItemsInTransaction;
+    double newCp = totalCp / totalItems;
+    this._costPrice = newCp;
+    this._totalStock = totalItems;
   }
-  */
 
   // Convert a note obj to map obj
   Map<String, dynamic> toMap() {
