@@ -20,15 +20,13 @@ class _SignInState extends State<SignIn> {
   TextEditingController userEmailController = TextEditingController();
   TextEditingController userPasswordController = TextEditingController();
 
-   @override
+  @override
   Widget build(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
     return loading
         ? Loading()
         : Scaffold(
-            backgroundColor: Colors.brown[100],
             appBar: AppBar(
-              backgroundColor: Colors.brown[400],
               elevation: 0.0,
               title: Text('Sign in'),
               actions: <Widget>[
@@ -74,7 +72,7 @@ class _SignInState extends State<SignIn> {
 
                     SizedBox(height: 20.0),
                     RaisedButton(
-                        color: Colors.pink[400],
+                        color: Theme.of(context).accentColor,
                         child: Text(
                           'Sign In',
                           style: TextStyle(color: Colors.white),
@@ -107,4 +105,3 @@ class _SignInState extends State<SignIn> {
           );
   }
 }
-

@@ -17,7 +17,7 @@ class MainView extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Bookkeeping app',
         theme: ThemeData(
-          primarySwatch: Colors.deepPurple,
+          primarySwatch: Colors.blue,
         ), // ThemeData
         routes: <String, WidgetBuilder>{
           "/mainForm": (BuildContext context) =>
