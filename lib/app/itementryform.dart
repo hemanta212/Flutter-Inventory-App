@@ -75,8 +75,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
     if (this.itemId != null) {
       this.itemNameController.text = '${item.name}';
       this.itemNickNameController.text = '${item.nickName ?? ''}';
-      this.markedPriceController.text =
-          FormUtils.fmtToIntIfPossible(this.item.markedPrice);
+      this.markedPriceController.text = this.item.markedPrice;
       if (this.item.totalStock != 0) {
         this.totalStockController.text =
             FormUtils.fmtToIntIfPossible(this.item.totalStock);
@@ -152,7 +151,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
                     // Marked Price of item
                     Visibility(
-                        visible: this.item.markedPrice?.isFinite ??
+                        visible: this.item.markedPrice?.isNotEmpty ??
                             false, // defaults to false if MP is null
                         child: WindowUtils.genTextField(
                           labelText: "Marked price",
@@ -249,7 +248,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   }
 
   void updateMarkedPrice() {
-    this.item.markedPrice = double.parse(this.markedPriceController.text);
+    this.item.markedPrice = this.markedPriceController.text;
   }
 
   void updateItemDescription() {

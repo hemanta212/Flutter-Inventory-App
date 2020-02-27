@@ -112,8 +112,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
           debugPrint(
               "Got item snapshot data to fill form ${itemSnapshot.data}");
           this.itemNameController.text = '${itemSnapshot.data['name']}';
-          this.markedPriceController.text =
-              FormUtils.fmtToIntIfPossible(itemSnapshot.data['marked_price']);
+          this.markedPriceController.text = itemSnapshot.data['marked_price'];
           this.tempItemId = itemSnapshot.documentID;
         }
       });
@@ -388,7 +387,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
     this.transaction.itemId = itemId;
     this.transaction.items = items;
-    item.markedPrice = double.parse(this.markedPriceController.text).abs();
+    item.markedPrice = this.markedPriceController.text;
 
     this.transaction.amount = totalCostPrice;
 

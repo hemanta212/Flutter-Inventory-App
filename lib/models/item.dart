@@ -3,7 +3,7 @@ class Item {
   String _nickName;
   String _description;
   double _costPrice;
-  double _markedPrice;
+  String _markedPrice;
   double _totalStock = 0.0;
   String _lastStockEntry;
   int _used = 0;
@@ -27,7 +27,7 @@ class Item {
 
   String get description => _description;
 
-  double get markedPrice => _markedPrice;
+  String get markedPrice => _markedPrice;
 
   double get totalStock => _totalStock;
 
@@ -61,7 +61,7 @@ class Item {
     this._costPrice = newCostPrice;
   }
 
-  set markedPrice(double newMarkedPrice) {
+  set markedPrice(String newMarkedPrice) {
     this._markedPrice = newMarkedPrice;
   }
 
@@ -120,12 +120,15 @@ class Item {
     // Retrieve old cp and totalStock before faulty transaction
     double oldTransactionItems = transaction.items;
     double oldTransactionCostPrice = transaction.amount / oldTransactionItems;
-    print("Got old transaction cp $oldTransactionCostPrice and items $oldTransactionItems");
+    print(
+        "Got old transaction cp $oldTransactionCostPrice and items $oldTransactionItems");
     double oldTotalStock = this._totalStock - oldTransactionItems;
     double oldTotalCostPrice = ((this._costPrice * this._totalStock) -
-        (oldTransactionItems * oldTransactionCostPrice)).abs();
+            (oldTransactionItems * oldTransactionCostPrice))
+        .abs();
 
-    print("Got total costprice of old $oldTotalCostPrice & items $oldTotalStock");
+    print(
+        "Got total costprice of old $oldTotalCostPrice & items $oldTotalStock");
     // Reapply to get new cp from new updated transaction info
     double totalCp = oldTotalCostPrice + newTotalCostPriceOfTransaction;
     double totalItems = oldTotalStock + newNoOfItemsInTransaction;

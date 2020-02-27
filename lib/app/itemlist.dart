@@ -189,7 +189,7 @@ class ItemListState extends State<ItemList> {
   static Widget _getNameAndPrice(BuildContext context, Item item) {
     TextStyle nameStyle = Theme.of(context).textTheme.subhead;
     String name = item.name;
-    String markedPrice = FormUtils.fmtToIntIfPossible(item.markedPrice);
+    String markedPrice = item.markedPrice ?? '';
     String finalMarkedPrice = markedPrice.isEmpty ? "" : "Rs $markedPrice";
     return Row(children: <Widget>[
       Expanded(flex: 1, child: Text(name, style: nameStyle)),
