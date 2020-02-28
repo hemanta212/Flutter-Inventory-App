@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:bk_app/app/itementryform.dart';
-import 'package:bk_app/app/salesentryform.dart';
-import 'package:bk_app/app/stockentryform.dart';
-import 'package:bk_app/app/monthHistory.dart';
-import 'package:bk_app/app/transactionlist.dart';
-import 'package:bk_app/app/duetransactions.dart';
+import 'package:bk_app/app/forms/itemEntryForm.dart';
+import 'package:bk_app/app/forms/salesEntryForm.dart';
+import 'package:bk_app/app/forms/stockEntryForm.dart';
+import 'package:bk_app/app/transactions/monthHistory.dart';
+import 'package:bk_app/app/transactions/transactionList.dart';
+import 'package:bk_app/app/transactions/dueTransactions.dart';
 
 class WindowUtils {
   static Widget getCard(String label, {color = Colors.white}) {

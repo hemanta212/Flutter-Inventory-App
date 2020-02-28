@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/wrapper.dart';
-import 'package:bk_app/app/salesentryform.dart';
+import 'package:bk_app/app/forms/salesEntryForm.dart';
 import 'package:bk_app/app/itemlist.dart';
-import 'package:bk_app/app/transactionlist.dart';
+import 'package:bk_app/app/transactions/transactionList.dart';
 import 'package:bk_app/app/settings.dart';
 import 'package:bk_app/services/auth.dart';
 

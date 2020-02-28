@@ -3,9 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/wrapper.dart';
-import 'package:bk_app/app/salesentryform.dart';
-import 'package:bk_app/app/stockentryform.dart';
-import 'package:bk_app/app/salesOverview.dart';
+import 'package:bk_app/app/forms/salesEntryForm.dart';
+import 'package:bk_app/app/forms/stockEntryForm.dart';
+import 'package:bk_app/app/transactions/salesOverview.dart';
 import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/models/user.dart';
 import 'package:bk_app/utils/scaffold.dart';
@@ -310,10 +310,11 @@ class TransactionListState extends State<TransactionList> {
   }
 
   void _updateListView() async {
-    this.pendingTransactions =
+    List<ItemTransaction> pendingTransactions =
         await crudHelper.getPendingTransactions();
     setState(() {
       this.transactions = crudHelper.getItemTransactionStream();
+      this.pendingTransactions = pendingTransactions.reversed.toList();
     });
   }
 

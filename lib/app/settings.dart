@@ -5,6 +5,7 @@ import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/services/auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -171,9 +172,30 @@ class _SettingState extends State<Setting> {
     if (_formKey.currentState.validate()) {
       this.userData.targetEmail =
           this._currentTargetEmail ?? this.userData.email;
+      if (!await _validateTargetEmail()) {
+        WindowUtils.showAlertDialog(context, "Failed",
+            "You don't have access rights to this target email\n${this.userData.targetEmail}");
+        return;
+      }
       print("saving this.userData ${this.userData.roles}");
       crudHelper.updateUserData(this.userData);
       Navigator.pop(context);
+    }
+  }
+
+  Future<bool> _validateTargetEmail() async {
+    if (this.userData.email == this.userData.targetEmail) return true;
+
+    DocumentSnapshot targetUserSnapshot =
+        await crudHelper.getUserData('email', this.userData.targetEmail);
+    if (targetUserSnapshot?.data?.isEmpty ?? true) {
+      return false;
+    } else {
+      UserData userData = UserData.fromMapObject(targetUserSnapshot.data);
+      if (userData.roles?.containsKey(this.userData.email) ?? false)
+        return true;
+      else
+        return false;
     }
   }
 

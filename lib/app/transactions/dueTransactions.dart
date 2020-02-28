@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/wrapper.dart';
-import 'package:bk_app/app/transactionlist.dart';
+import 'package:bk_app/app/transactions/transactionList.dart';
 import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/models/user.dart';
 import 'package:bk_app/utils/scaffold.dart';
