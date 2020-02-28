@@ -50,10 +50,15 @@ class _MonthlyHistoryState extends State<MonthlyHistory> {
       child: Row(
         children: <Widget>[
           IconButton(
-              icon: Icon(Icons.card_travel),
+              icon: Icon(Icons.card_giftcard),
               onPressed: () => WindowUtils.navigateToPage(context,
                   target: 'Transactions', caller: 'Month History')),
-          SizedBox(width: 220.0),
+          SizedBox(width: 20.0),
+          IconButton(
+              icon: Icon(Icons.access_alarm),
+              onPressed: () => WindowUtils.navigateToPage(context,
+                  target: 'Due Transactions', caller: 'Month History')),
+          SizedBox(width: 150.0),
           IconButton(
               icon: Icon(Icons.history),
               onPressed: () => WindowUtils.navigateToPage(context,
@@ -62,7 +67,6 @@ class _MonthlyHistoryState extends State<MonthlyHistory> {
       ),
     );
   }
-
 
   Widget showTransactionHistoryForCurrentMonth() {
     if (this.currentMonthHistory != null) {
@@ -117,11 +121,10 @@ class _MonthlyHistoryState extends State<MonthlyHistory> {
   }
 
   void _initializeCurrentMonthHistory() async {
-    final allTransactions = await crudHelper.getItemTransactionQuerySnapshot();
+    final allTransactions = await crudHelper.getItemTransactions();
 
     setState(() {
-      allTransactions.documents.forEach((doc) {
-        ItemTransaction transaction = ItemTransaction.fromMapObject(doc.data);
+      allTransactions.forEach((ItemTransaction transaction) {
         DateTime transactionDate =
             DateFormat.yMMMd().add_jms().parse(transaction.date);
         DateTime current = DateTime.now();

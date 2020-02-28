@@ -6,16 +6,27 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  UserData _userDataFromUser(FirebaseUser user) {
-    return user == null
-        ? user
-        : UserData(
-            uid: user.uid, email: user.email, verified: user.isEmailVerified);
+  Future<UserData> _userDataFromUser(FirebaseUser user) async {
+    if (user == null) {
+      return null;
+    }
+    UserData userData = await CrudHelper().getUserDataByUid(user.uid);
+    if (userData == null) {
+      // The userdatabyid method will return null when its data is null.
+      // This is only case when user is just registered and doesnot happen othertimes
+      // Since now user is not null (only userData supposedly is) we should allow it to happen
+      return UserData(
+          uid: user.uid,
+          email: user.email,
+          verified: user.isEmailVerified,
+          targetEmail: user.email);
+    }
+    return userData;
   }
 
   // auth change user stream
   Stream<UserData> get user {
-    return _firebaseAuth.onAuthStateChanged.map(_userDataFromUser);
+    return _firebaseAuth.onAuthStateChanged.asyncMap(_userDataFromUser);
   }
 
   // sign in with email and password
@@ -46,6 +57,7 @@ class AuthService {
       }
       UserData userData = UserData(
           uid: user.uid,
+          targetEmail: user.email,
           email: user.email,
           verified: user.isEmailVerified,
           roles: Map());

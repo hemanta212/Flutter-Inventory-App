@@ -5,6 +5,7 @@ import 'package:bk_app/app/salesentryform.dart';
 import 'package:bk_app/app/stockentryform.dart';
 import 'package:bk_app/app/monthHistory.dart';
 import 'package:bk_app/app/transactionlist.dart';
+import 'package:bk_app/app/duetransactions.dart';
 
 class WindowUtils {
   static Widget getCard(String label, {color = Colors.white}) {
@@ -26,6 +27,7 @@ class WindowUtils {
       'Stock Entry': StockEntryForm(title: target),
       'Month History': MonthlyHistory(),
       'Transactions': TransactionList(),
+      'Due Transactions': DueTransaction(),
     };
 
     if (caller == target) {
@@ -122,7 +124,7 @@ class WindowUtils {
         style: textStyle,
         maxLines: maxLines,
         controller: controller,
-        obscureText : obscureText,
+        obscureText: obscureText,
         validator: (String value) {
           return validator(value, labelText);
         },

@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ItemTransaction {
+  String _id;
   int _type;
   double _amount;
   double _costPrice;
@@ -13,6 +16,8 @@ class ItemTransaction {
   ItemTransaction(
       this._type, this._itemId, this._amount, this._items, this._date,
       [this._description, this._costPrice, this._signature]);
+
+  String get id => _id;
 
   String get itemId => _itemId;
 
@@ -36,6 +41,10 @@ class ItemTransaction {
 
   set itemId(String newItemId) {
     this._itemId = newItemId;
+  }
+
+  set id(String newId) {
+    this._id = newId;
   }
 
   set type(int newType) {
@@ -74,10 +83,24 @@ class ItemTransaction {
     this._items = newItems;
   }
 
+  static List<ItemTransaction> fromQuerySnapshot(QuerySnapshot snapshot) {
+    List<ItemTransaction> transactions = List<ItemTransaction>();
+    snapshot.documents.forEach((DocumentSnapshot doc) {
+      ItemTransaction transaction = ItemTransaction.fromMapObject(doc.data);
+      transaction.id = doc.documentID;
+      transactions.add(transaction);
+    });
+    transactions.sort((a, b) {
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    return transactions;
+  }
+
   // Convert a note obj to map obj
   Map<String, dynamic> toMap() {
     var map = Map<String, dynamic>();
 
+    map['id'] = _id;
     map['item_id'] = _itemId;
     map['type'] = _type;
     map['description'] = _description;
@@ -93,6 +116,7 @@ class ItemTransaction {
 
   // Extract item obj from map obj
   ItemTransaction.fromMapObject(Map<String, dynamic> map) {
+    this._id = map['id'];
     this._type = map['type'];
     this._description = map['description'];
     this._dueAmount = map['due_amount'];

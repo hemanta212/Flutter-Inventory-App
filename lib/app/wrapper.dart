@@ -20,7 +20,7 @@ class Wrapper extends StatelessWidget {
       return Authenticate();
     } else {
       _initializeCache(startupCache);
-      return ItemList(); // SalesEntryForm(title: "Sales Entry");
+      return ItemList();
     }
   }
 

@@ -182,7 +182,7 @@ class ItemListState extends State<ItemList> {
 
   void _updateListView() {
     setState(() {
-      this.items = crudHelper.getItems();
+      this.items = crudHelper.getItemStream();
     });
   }
 

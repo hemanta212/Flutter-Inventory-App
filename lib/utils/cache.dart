@@ -1,9 +1,10 @@
 import 'dart:async';
 
+import 'package:bk_app/models/item.dart';
+import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:bk_app/services/crud.dart';
 
@@ -47,14 +48,14 @@ class StartupCache {
     debugPrint("Initializing item map cache");
     Map itemMap = Map();
     CrudHelper crudHelper = CrudHelper(userData: this.userData);
-    QuerySnapshot itemSnapshot = await crudHelper.getItemQuerySnapshot();
-    if (itemSnapshot.documents.isEmpty) {
+    List<Item> items = await crudHelper.getItems();
+    if (items.isEmpty) {
       return itemMap;
     }
-    itemSnapshot.documents.forEach((document) {
-      itemMap[document.documentID] = [
-        document.data['name'],
-        document.data['nick_name']
+    items.forEach((Item item) {
+      itemMap[item.id] = [
+        item.name,
+        item.nickName,
       ];
     });
     debugPrint("Done $itemMap");
@@ -65,18 +66,17 @@ class StartupCache {
     debugPrint("Initializing item transaction map cache");
     CrudHelper crudHelper = CrudHelper(userData: this.userData);
     Map itemTransactionMap = Map();
-    QuerySnapshot itemTransactionSnapshot =
-        await crudHelper.getItemTransactionQuerySnapshot();
-    if (itemTransactionSnapshot.documents.isEmpty) {
+    List<ItemTransaction> transactions = await crudHelper.getItemTransactions();
+    if (transactions.isEmpty) {
       return itemMap;
     }
-    itemTransactionSnapshot.documents.forEach((document) {
-      Map transactionMap = document.data;
+    transactions.forEach((transaction) {
+      Map transactionMap = transaction.toMap();
       String date = transactionMap['date'];
       if (_isNotOfToday(date)) {
         return;
       }
-      itemTransactionMap[document.documentID] = {
+      itemTransactionMap[transactionMap['id']] = {
         'type': transactionMap['type'],
         'itemId': transactionMap['item_id'],
         'amount': transactionMap['amount'] / transactionMap['items'],

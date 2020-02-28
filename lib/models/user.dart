@@ -3,9 +3,9 @@ class UserData {
   String uid;
   String email;
   bool verified;
-  String targetEmail = 'sharmahemanta.212@gmail.com';
+  String targetEmail;
   Map roles;
-  UserData({this.uid, this.email, this.verified, this.roles});
+  UserData({this.uid, this.email, this.targetEmail, this.verified, this.roles});
 
   Map<String, dynamic> toMap() {
     var map = Map<String, dynamic>();

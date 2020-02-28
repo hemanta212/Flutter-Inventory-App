@@ -3,6 +3,7 @@ import 'package:bk_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:bk_app/models/item.dart';
+import 'package:bk_app/models/transaction.dart';
 import 'package:bk_app/services/auth.dart';
 
 class CrudHelper {
@@ -12,7 +13,7 @@ class CrudHelper {
 
   // Item
   Future<int> addItem(Item item) async {
-      String targetEmail = this.userData.targetEmail;
+    String targetEmail = this.userData.targetEmail;
     if (targetEmail == this.userData.email) {
       await Firestore.instance
           .collection('$targetEmail-items')
@@ -28,7 +29,7 @@ class CrudHelper {
   }
 
   Future<int> updateItem(String itemId, Item newItem) async {
-      String targetEmail = this.userData.targetEmail;
+    String targetEmail = this.userData.targetEmail;
     if (targetEmail == this.userData.email) {
       await Firestore.instance
           .collection('$targetEmail-items')
@@ -45,7 +46,7 @@ class CrudHelper {
   }
 
   Future<int> deleteItem(String itemId) async {
-      String targetEmail = this.userData.targetEmail;
+    String targetEmail = this.userData.targetEmail;
     if (targetEmail == this.userData.email) {
       await Firestore.instance
           .collection('$targetEmail-items')
@@ -61,7 +62,7 @@ class CrudHelper {
     }
   }
 
-  Stream<QuerySnapshot> getItems() {
+  Stream<QuerySnapshot> getItemStream() {
     String email = this.userData.targetEmail;
     print("Stream current target email $email");
     return Firestore.instance
@@ -98,34 +99,41 @@ class CrudHelper {
     return item;
   }
 
-  Future<QuerySnapshot> getItemQuerySnapshot() {
+  Future<List<Item>> getItems() async {
     String email = this.userData.targetEmail;
-    return Firestore.instance
+    QuerySnapshot snapshots = await Firestore.instance
         .collection('$email-items')
         .orderBy('used', descending: true)
         .getDocuments();
+    List<Item> items = List<Item>();
+    snapshots.documents.forEach((DocumentSnapshot snapshot) {
+      Item item = Item.fromMapObject(snapshot.data);
+      item.id = snapshot.documentID;
+      items.add(item);
+    });
+    return items;
   }
 
   // Item Transactions
-  Stream<QuerySnapshot> getItemTransactions() {
+  Stream<List<ItemTransaction>> getItemTransactionStream() {
     String email = this.userData.targetEmail;
     return Firestore.instance
         .collection('$email-transactions')
         .where('signature', isEqualTo: email)
-        .orderBy('created_at', descending: true)
-        .snapshots();
+        .snapshots()
+        .map(ItemTransaction.fromQuerySnapshot);
   }
 
-  Future<QuerySnapshot> getItemTransactionQuerySnapshot() {
+  Future<List<ItemTransaction>> getItemTransactions() async {
     String email = this.userData.targetEmail;
-    return Firestore.instance
+    QuerySnapshot snapshots = await Firestore.instance
         .collection('$email-transactions')
-        .orderBy('created_at', descending: true)
         .where('signature', isEqualTo: email)
         .getDocuments();
+    return ItemTransaction.fromQuerySnapshot(snapshots);
   }
 
-  Future<QuerySnapshot> getPendingTransactionQuerySnapshot() async {
+  Future<List<ItemTransaction>> getPendingTransactions() async {
     String email = this.userData.targetEmail;
     UserData user = await this
         .getUserData('email', email)
@@ -133,11 +141,20 @@ class CrudHelper {
     List roles = user.roles.keys.toList();
     print("roles $roles");
     if (roles.isEmpty) return null;
-    return Firestore.instance
+    QuerySnapshot snapshots = await Firestore.instance
         .collection('$email-transactions')
-        .orderBy('created_at', descending: false)
         .where('signature', whereIn: roles)
         .getDocuments();
+    return ItemTransaction.fromQuerySnapshot(snapshots);
+  }
+
+  Future<List<ItemTransaction>> getDueTransactions() async {
+    String email = this.userData.targetEmail;
+    QuerySnapshot snapshots = await Firestore.instance
+        .collection('$email-transactions')
+        .where('due_amount', isGreaterThan: 0.0)
+        .getDocuments();
+    return ItemTransaction.fromQuerySnapshot(snapshots);
   }
 
   // Users
@@ -168,11 +185,12 @@ class CrudHelper {
     }
 
     UserData userData = UserData.fromMapObject(_userData.data);
-    print("here we go $userData");
+    print("here we go $userData & roles ${userData.roles}");
     return userData;
   }
 
   Future<int> updateUserData(UserData userData) async {
+    print("got userData and roles ${userData.toMap}");
     await Firestore.instance
         .collection('users')
         .document(userData.uid)

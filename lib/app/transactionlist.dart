@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -26,8 +25,8 @@ class TransactionList extends StatefulWidget {
 class TransactionListState extends State<TransactionList> {
   static CrudHelper crudHelper;
   Map itemMapCache = Map();
-  Stream<QuerySnapshot> transactions;
-  QuerySnapshot pendingTransactions;
+  Stream<List<ItemTransaction>> transactions;
+  List<ItemTransaction> pendingTransactions;
   bool loading = true;
   static UserData userData;
   Map currentMonthHistory = Map();
@@ -92,9 +91,15 @@ class TransactionListState extends State<TransactionList> {
               icon: Icon(Icons.card_travel),
               onPressed: () => WindowUtils.navigateToPage(context,
                   target: 'Transactions', caller: 'Transactions')),
-          SizedBox(width:220.0),
-          IconButton(icon: Icon(Icons.history), onPressed: () =>
-                WindowUtils.navigateToPage(context,
+          SizedBox(width: 20.0),
+          IconButton(
+              icon: Icon(Icons.access_alarm),
+              onPressed: () => WindowUtils.navigateToPage(context,
+                  target: 'Due Transactions', caller: 'Transactions')),
+          SizedBox(width: 150.0),
+          IconButton(
+              icon: Icon(Icons.history),
+              onPressed: () => WindowUtils.navigateToPage(context,
                   target: 'Month History', caller: 'Transactions'))
         ],
       ),
@@ -107,12 +112,9 @@ class TransactionListState extends State<TransactionList> {
       builder: (context, snapshot) {
         if (snapshot.hasData && !loading) {
           return ListView.builder(
-            itemCount: snapshot.data.documents.length,
+            itemCount: snapshot.data.length,
             itemBuilder: (BuildContext context, int index) {
-              DocumentSnapshot itemTransactionSnapshot =
-                  snapshot.data.documents[index];
-              ItemTransaction transaction =
-                  ItemTransaction.fromMapObject(itemTransactionSnapshot.data);
+              ItemTransaction transaction = snapshot.data[index];
               return Card(
                   color: Colors.white,
                   elevation: 2.0,
@@ -126,11 +128,13 @@ class TransactionListState extends State<TransactionList> {
                             "Rs. ${FormUtils.fmtToIntIfPossible(transaction.amount)}"),
                       ],
                     ),
-                    title: this._getDescription(context, transaction),
+                    title:
+                        getDescription(context, transaction, this.itemMapCache),
                     onTap: () {
-                      String transactionId = itemTransactionSnapshot.documentID;
-                      _navigateToDetail(transaction, 'Edit Item',
-                          transactionId: transactionId);
+                      String transactionId = transaction.id;
+                      navigateToDetail(context, transaction, 'Edit Item',
+                          transactionId: transactionId,
+                          updateListView: this._updateListView);
                     },
                   ));
             },
@@ -145,12 +149,9 @@ class TransactionListState extends State<TransactionList> {
   Widget showPendingTransactions() {
     if (this.pendingTransactions != null) {
       return ListView.builder(
-        itemCount: this.pendingTransactions.documents.length,
+        itemCount: this.pendingTransactions.length,
         itemBuilder: (BuildContext context, int index) {
-          DocumentSnapshot transactionSnapshot =
-              this.pendingTransactions.documents[index];
-          ItemTransaction transaction =
-              ItemTransaction.fromMapObject(transactionSnapshot.data);
+          ItemTransaction transaction = this.pendingTransactions[index];
           return Card(
               color: Colors.white,
               elevation: 2.0,
@@ -158,17 +159,18 @@ class TransactionListState extends State<TransactionList> {
                 leading: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: <Widget>[
-                    SizedBox(height: 20.0),
+                    SizedBox(height: 10.0),
                     Text("Amount"),
                     Text("Rs. ${transaction.amount}"),
                   ],
                 ),
-                title: this._getDescription(context, transaction),
+                title: getDescription(context, transaction, this.itemMapCache),
                 subtitle: Text(transaction.signature),
                 onTap: () {
-                  String transactionId = transactionSnapshot.documentID;
-                  _navigateToDetail(transaction, 'Edit Item',
-                      transactionId: transactionId);
+                  String transactionId = transaction.id;
+                  navigateToDetail(context, transaction, 'Edit Item',
+                      transactionId: transactionId,
+                      updateListView: this._updateListView);
                 },
               ));
         },
@@ -176,90 +178,6 @@ class TransactionListState extends State<TransactionList> {
     } else {
       return Loading();
     }
-  }
-
-  Widget _getDescription(BuildContext context, ItemTransaction transaction) {
-    ThemeData localTheme = Theme.of(context);
-    String itemName = this._getItemName(transaction);
-    String action = transaction.type.isOdd ? "Bought" : "Sold";
-    String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
-
-    DateTime transactionDate =
-        DateFormat.yMMMd().add_jms().parse(transaction.date);
-    String dayYear = DateFormat.yMMMd().format(transactionDate);
-    String time = DateFormat.jm().format(transactionDate);
-
-    return Row(children: <Widget>[
-      Expanded(
-          flex: 1,
-          child: Column(children: <Widget>[
-            Text("$action: $itemNo units\n$itemName",
-                style: localTheme.textTheme.subhead),
-          ])),
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          SizedBox(height: 10.0, width: 1.0),
-          Text(dayYear,
-              style: localTheme.textTheme.body1.copyWith(fontSize: 10.0)),
-          Text(time, style: localTheme.textTheme.body2),
-        ],
-      ),
-    ]);
-  }
-
-  void _navigateToDetail(ItemTransaction transaction, String name,
-      {String transactionId}) async {
-    var form;
-    if (transaction.type == 0) {
-      form = SalesEntryForm(
-          title: name,
-          transaction: transaction,
-          forEdit: true,
-          transactionId: transactionId);
-    } else {
-      form = StockEntryForm(
-          title: name,
-          transaction: transaction,
-          forEdit: true,
-          transactionId: transactionId);
-    }
-
-    bool result =
-        await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return form;
-    }));
-
-    if (result == true) {
-      this._updateListView();
-    }
-  }
-
-  void _updateListView() async {
-    this.pendingTransactions =
-        await crudHelper.getPendingTransactionQuerySnapshot();
-    setState(() {
-      this.transactions = crudHelper.getItemTransactions();
-    });
-  }
-
-  void _initializeItemMapCache() async {
-    this.itemMapCache = await StartupCache().itemMap;
-    setState(() {
-      this.loading = false;
-    });
-  }
-
-  String _getItemName(ItemTransaction transaction) {
-    if (this.itemMapCache.isEmpty) {
-      debugPrint("item cache still empty");
-      return 'N/A';
-    }
-
-    Map map = this.itemMapCache;
-    List infoList = map[transaction.itemId];
-    String itemName = infoList?.first ?? 'N/A';
-    return itemName;
   }
 
   void _showTransactionProfit() async {
@@ -330,5 +248,91 @@ class TransactionListState extends State<TransactionList> {
       debugPrint("Profita calc error $e");
     }
     SalesOverview.showTransactions(context, overViewMap);
+  }
+
+  static Widget getDescription(
+      BuildContext context, ItemTransaction transaction, Map cache) {
+    ThemeData localTheme = Theme.of(context);
+    String itemName = getItemName(transaction, cache: cache);
+    String action = transaction.type.isOdd ? "Bought" : "Sold";
+    String itemNo = FormUtils.fmtToIntIfPossible(transaction.items);
+
+    DateTime transactionDate =
+        DateFormat.yMMMd().add_jms().parse(transaction.date);
+    String dayYear = DateFormat.yMMMd().format(transactionDate);
+    String time = DateFormat.jm().format(transactionDate);
+
+    return Row(children: <Widget>[
+      Expanded(
+          flex: 1,
+          child: Column(children: <Widget>[
+            Text("$action: $itemNo units\n$itemName",
+                style: localTheme.textTheme.subhead),
+          ])),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          SizedBox(height: 10.0, width: 1.0),
+          Text(dayYear,
+              style: localTheme.textTheme.body1.copyWith(fontSize: 10.0)),
+          Text(time, style: localTheme.textTheme.body2),
+        ],
+      ),
+    ]);
+  }
+
+  static void navigateToDetail(
+      BuildContext context, ItemTransaction transaction, String name,
+      {String transactionId, updateListView}) async {
+    var form;
+    if (transaction.type == 0) {
+      form = SalesEntryForm(
+          title: name,
+          transaction: transaction,
+          forEdit: true,
+          transactionId: transactionId);
+    } else {
+      form = StockEntryForm(
+          title: name,
+          transaction: transaction,
+          forEdit: true,
+          transactionId: transactionId);
+    }
+
+    bool result =
+        await Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return form;
+    }));
+
+    if (result == true) {
+      updateListView();
+    }
+  }
+
+  void _updateListView() async {
+    this.pendingTransactions =
+        await crudHelper.getPendingTransactions();
+    setState(() {
+      this.transactions = crudHelper.getItemTransactionStream();
+    });
+  }
+
+  void _initializeItemMapCache() async {
+    this.itemMapCache = await StartupCache().itemMap;
+    setState(() {
+      this.loading = false;
+    });
+  }
+
+  static String getItemName(ItemTransaction transaction, {cache}) {
+    if (cache.isEmpty) {
+      debugPrint("item cache still empty");
+      return 'N/A';
+    }
+
+    Map map = cache;
+    List infoList = map[transaction.itemId];
+    String itemName = infoList?.first ?? 'N/A';
+    return itemName;
   }
 }

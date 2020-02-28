@@ -374,8 +374,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
       // Update case.
       if (item.lastStockEntry == this.transaction.date) {
         // For latest transaction
-        item.modifyLatestStockEntry(
-            this.transaction, items, totalCostPrice);
+        item.modifyLatestStockEntry(this.transaction, items, totalCostPrice);
       }
     } else {
       // Insert case
@@ -383,6 +382,9 @@ class _StockEntryFormState extends State<StockEntryForm> {
           item.getNewCostPriceAndStock(totalCostPrice, items);
       item.costPrice = newCpAndTotalStock[0];
       item.totalStock = newCpAndTotalStock[1];
+
+      // Modify the previous item if transaction is being transfered
+      if (this.transaction.itemId != itemId) {}
     }
 
     this.transaction.itemId = itemId;

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 class CustomScaffold {
   static Widget setDrawer(context) {
     UserData userData = Provider.of<UserData>(context);
+    debugPrint("ROLESS NOW IN SCAFFOLD !!! ${userData.roles}");
 
     return Drawer(
         child: ListView(padding: EdgeInsets.zero, children: <Widget>[

@@ -18,24 +18,26 @@ class _SettingState extends State<Setting> {
   String _currentTargetEmail;
 
   static CrudHelper crudHelper;
-  static UserData userData;
+  UserData userData;
   static AuthService _auth = AuthService();
 
   Map currentMonthHistory = Map();
   final double _minimumPadding = 5.0;
 
+  _SettingState();
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    userData = Provider.of<UserData>(context);
-    if (userData != null) {
-      crudHelper = CrudHelper(userData: userData);
+    this.userData = Provider.of<UserData>(context);
+    if (this.userData != null) {
+      crudHelper = CrudHelper(userData: this.userData);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (userData == null) {
+    if (this.userData == null) {
       return Wrapper();
     }
     return Scaffold(
@@ -65,118 +67,121 @@ class _SettingState extends State<Setting> {
 
   Widget getSettings() {
     final localTheme = Theme.of(context);
-    return Padding(
-        padding: EdgeInsets.only(left: 10.0, right: 10.0),
-        child: FutureBuilder<UserData>(
-            future: crudHelper.getUserDataByUid(userData.uid),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                UserData userData = snapshot.data;
-                return ListView(children: <Widget>[
-                  Form(
-                    key: _formKey,
-                    child: Column(children: <Widget>[
-                      SizedBox(height: 20.0),
-                      TextFormField(
-                        initialValue: userData.targetEmail,
-                        decoration: InputDecoration(
-                          labelText: "Target Email",
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(5.0)),
-                        ),
-                        onChanged: (val) =>
-                            setState(() => _currentTargetEmail = val),
-                      ),
-                      SizedBox(height: 10.0),
-                      TextFormField(
-                          enabled: false,
-                          initialValue: userData.email,
-                          decoration: InputDecoration(
-                            labelText: "Email",
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(5.0)),
-                          )),
-                      Visibility(
-                          visible: userData.verified ? false : true,
-                          child: Row(children: <Widget>[
-                            RaisedButton(
-                              color: Colors.white,
-                              child: Text('Email Not verified',
-                                  style: TextStyle(color: Colors.red[400])),
-                              onPressed: () {},
+    return Material(
+        child: Padding(
+            padding: EdgeInsets.only(left: 10.0, right: 10.0),
+            child: FutureBuilder<UserData>(
+                future: crudHelper.getUserDataByUid(this.userData.uid),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    UserData _userData = snapshot.data;
+                    return ListView(children: <Widget>[
+                      Form(
+                        key: _formKey,
+                        child: Column(children: <Widget>[
+                          SizedBox(height: 20.0),
+                          TextFormField(
+                            initialValue: _userData.targetEmail,
+                            decoration: InputDecoration(
+                              labelText: "Target Email",
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(5.0)),
                             ),
-                            SizedBox(width: 20.0),
+                            onChanged: (val) =>
+                                setState(() => _currentTargetEmail = val),
+                          ),
+                          SizedBox(height: 10.0),
+                          TextFormField(
+                              enabled: false,
+                              initialValue: _userData.email,
+                              decoration: InputDecoration(
+                                labelText: "Email",
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(5.0)),
+                              )),
+                          Visibility(
+                              visible: _userData.verified ? false : true,
+                              child: Row(children: <Widget>[
+                                RaisedButton(
+                                  color: Colors.red,
+                                  child: Text('Email Not verified',
+                                      style: TextStyle(color: Colors.white)),
+                                  onPressed: () {},
+                                ),
+                                SizedBox(width: 20.0),
+                                RaisedButton(
+                                    color: Colors.blue[400],
+                                    child: Text(
+                                      'Send verification',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    onPressed: () async {
+                                      print("sending verification");
+                                    })
+                              ])),
+                          SizedBox(height: 20.0),
+                          Row(children: <Widget>[
+                            Expanded(
+                              flex: 1,
+                              child: Container(
+                                  child: Text('Roles',
+                                      style: localTheme.textTheme.title)),
+                            ),
                             RaisedButton(
                                 color: Colors.blue[400],
                                 child: Text(
-                                  'Send verification',
+                                  'Add roles',
                                   style: TextStyle(color: Colors.white),
                                 ),
-                                onPressed: () async {
-                                  print("sending verification");
-                                })
-                          ])),
-                      SizedBox(height: 20.0),
-                      Row(children: <Widget>[
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                              color: Colors.white,
-                              child: Text('Roles',
-                                  style: localTheme.textTheme.title)),
-                        ),
-                        RaisedButton(
-                            color: Colors.blue[400],
-                            child: Text(
-                              'Add roles',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                this.showDialogForRoles(userData);
-                              });
-                            }),
-                      ]),
-                      this.showRolesMapping(userData),
-                      SizedBox(height: 20.0),
+                                onPressed: () {
+                                  setState(() {
+                                    this.showDialogForRoles();
+                                  });
+                                }),
+                          ]),
+                          this.showRolesMapping(this.userData),
+                          SizedBox(height: 20.0),
 
-                      // save
-                      Padding(
-                          padding: EdgeInsets.only(
-                              bottom: _minimumPadding * 3,
-                              top: 3 * _minimumPadding),
-                          child: Row(children: <Widget>[
-                            WindowUtils.genButton(
-                                context, "Save", this.checkAndSave),
-                            Container(
-                              width: _minimumPadding,
-                            ),
-                            WindowUtils.genButton(context, "Discard",
-                                () => Navigator.pop(context))
-                          ]) // Row
+                          // save
+                          Padding(
+                              padding: EdgeInsets.only(
+                                  bottom: _minimumPadding * 3,
+                                  top: 3 * _minimumPadding),
+                              child: Row(children: <Widget>[
+                                WindowUtils.genButton(
+                                    context, "Save", this.checkAndSave),
+                                Container(
+                                  width: _minimumPadding,
+                                ),
+                                WindowUtils.genButton(context, "Discard",
+                                    () => Navigator.pop(context))
+                              ]) // Row
 
-                          ), // Paddin
-                    ]),
-                  )
-                ]);
-              } else {
-                return Loading();
-              }
-            }));
+                              ), // Paddin
+                        ]),
+                      )
+                    ]);
+                  } else {
+                    return Loading();
+                  }
+                })));
   }
 
   void checkAndSave() async {
     if (_formKey.currentState.validate()) {
-      userData.targetEmail = this._currentTargetEmail ?? userData.email;
-      crudHelper.updateUserData(userData);
+      this.userData.targetEmail =
+          this._currentTargetEmail ?? this.userData.email;
+      print("saving this.userData ${this.userData.roles}");
+      crudHelper.updateUserData(this.userData);
       Navigator.pop(context);
     }
   }
 
   Widget showRolesMapping(UserData userData) {
+    double _minimumPadding = 5.0;
     return userData.roles?.isNotEmpty ?? false
         ? Padding(
-            padding: EdgeInsets.only(right: 10.0, left: 10.0),
+            padding: EdgeInsets.only(right: 1.0, left: 1.0),
             child: ListView.builder(
                 shrinkWrap: true,
                 itemCount: userData.roles.keys?.length ?? 0,
@@ -187,25 +192,24 @@ class _SettingState extends State<Setting> {
                       elevation: 5.0,
                       child: Row(children: <Widget>[
                         Expanded(
-                            child: TextField(
-                          enabled: false,
-                          decoration: InputDecoration(
-                            labelText: email,
-                          ),
-                        )),
+                            flex: 1,
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                  top: _minimumPadding * 3,
+                                  bottom: _minimumPadding * 3),
+                              padding: EdgeInsets.all(_minimumPadding),
+                              child: Text(email, softWrap: true),
+                            )),
                         Expanded(
-                            child: TextField(
-                          enabled: false,
-                          decoration: InputDecoration(
-                            labelText: role,
-                          ),
+                            child: Padding(
+                          padding: EdgeInsets.all(_minimumPadding),
+                          child: Text(role, softWrap: true),
                         )),
                         GestureDetector(
                             child: Icon(Icons.edit),
                             onTap: () {
                               setState(() {
-                                showDialogForRoles(userData,
-                                    email: email, role: role);
+                                showDialogForRoles(email: email, role: role);
                               });
                             }),
                       ]));
@@ -213,7 +217,7 @@ class _SettingState extends State<Setting> {
         : SizedBox(width: 20.0);
   }
 
-  void showDialogForRoles(UserData userData, {String email, String role}) {
+  void showDialogForRoles({String email, String role}) {
     final _roleFormKey = GlobalKey<FormState>();
     showDialog(
         context: context,
@@ -264,8 +268,13 @@ class _SettingState extends State<Setting> {
                             ),
                             onPressed: () async {
                               if (_roleFormKey.currentState.validate()) {
-                                userData.roles[email] = role;
-                                crudHelper.updateUserData(userData);
+                                if (this.userData.roles == null) {
+                                  this.userData.roles = Map();
+                                }
+                                this.userData.roles[email] = role;
+                                print(
+                                    "updating this.userData ${this.userData.roles}");
+                                crudHelper.updateUserData(this.userData);
                                 setState(() => Navigator.pop(context));
                               }
                             }),
@@ -277,9 +286,9 @@ class _SettingState extends State<Setting> {
                             ),
                             onPressed: () async {
                               if (_roleFormKey.currentState.validate()) {
-                                if (userData.roles.containsKey(email)) {
-                                  userData.roles.remove(email);
-                                  crudHelper.updateUserData(userData);
+                                if (this.userData.roles.containsKey(email)) {
+                                  this.userData.roles.remove(email);
+                                  crudHelper.updateUserData(this.userData);
                                 }
                                 role = '';
                                 email = '';

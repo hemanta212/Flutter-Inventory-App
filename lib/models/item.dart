@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Item {
+  String _id;
   String _name;
   String _nickName;
   String _description;
@@ -17,6 +20,8 @@ class Item {
     // NOTE : various item custom units
   ]);
 
+  String get id => _id;
+
   String get name => _name;
 
   String get nickName => _nickName;
@@ -32,6 +37,10 @@ class Item {
   double get totalStock => _totalStock;
 
   int get used => _used;
+
+  set id(String newId) {
+    this._id = newId;
+  }
 
   set name(String newName) {
     if (newName.length <= 140) {
@@ -137,10 +146,24 @@ class Item {
     this._totalStock = totalItems;
   }
 
+  static List<Item> fromQuerySnapshot(QuerySnapshot snapshot) {
+    List<Item> items = List<Item>();
+    snapshot.documents.forEach((DocumentSnapshot doc) {
+      Item item = Item.fromMapObject(doc.data);
+      item.id = doc.documentID;
+      items.add(item);
+    });
+    items.sort((a, b) {
+      return a.used.compareTo(b.used);
+    });
+    return items;
+  }
+
   // Convert a note obj to map obj
   Map<String, dynamic> toMap() {
     var map = Map<String, dynamic>();
 
+    map['id'] = _id;
     map['name'] = _name;
     map['nick_name'] = _nickName;
     map['description'] = _description;
@@ -154,6 +177,7 @@ class Item {
 
   // Extract item obj from map obj
   Item.fromMapObject(Map<String, dynamic> map) {
+    this._id = map['id'];
     this._description = map['description'];
     this._name = map['name'];
     this._nickName = map['nick_name'];
