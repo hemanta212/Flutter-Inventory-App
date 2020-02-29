@@ -80,8 +80,8 @@ class FormUtils {
     return success;
   }
 
-  static void deleteTransactionAndUpdateItem(callback, transaction,
-      transactionId, DocumentSnapshot itemSnapshot, userData) async {
+  static void deleteTransactionAndUpdateItem(
+      callback, transaction, transactionId, Item item, userData) async {
     // Sync newly updated item and delete transaction from db in batch
     Firestore db = Firestore.instance;
     bool success = true;
@@ -94,7 +94,7 @@ class FormUtils {
       return;
     }
 
-    if (itemSnapshot?.data == null || !isDatabaseOwner(userData)) {
+    if (item == null || !isDatabaseOwner(userData)) {
       //Condition 1:
       // Those transaction whose relating item are deleted are orphan transactions
       // The item associated can't be modified so we can just delete transaction only
@@ -110,8 +110,6 @@ class FormUtils {
       return;
     }
 
-    // Reset item to state before this sales transaction
-    Item item = Item.fromMapObject(itemSnapshot.data);
     item.used += 1;
 
     if (transaction.type == 0) {
@@ -123,13 +121,47 @@ class FormUtils {
       batch.delete(
           db.collection('$targetEmail-transactions').document(transactionId));
       batch.updateData(
-          db.collection('$targetEmail-items').document(itemSnapshot.documentID),
-          item.toMap());
+          db.collection('$targetEmail-items').document(item.id), item.toMap());
+
       batch.commit();
     } catch (e) {
       success = false;
     }
 
     callback(success);
+  }
+
+  static genFuzzySuggestionsForItem(
+      String sampleString, List sourceList) {
+    if (sourceList.isEmpty) {
+      return sourceList;
+    }
+    List<Map> result = sourceList.where((map) {
+      String itemName = map['name'].toLowerCase();
+      String itemNickName = map['nickName']?.toLowerCase() ?? '';
+
+      // Takes: user given string | constructs -> regexPattern
+      // e.g: "zam" -> ".*z.*a.*m.*"
+      List<String> strsWithWildCards = "$sampleString"
+          .split("")
+          .map((letter) => ".*$letter")
+          .toList(); // Makes "zam" -> ".*z.*a.*m"
+      strsWithWildCards.add('.*'); // ".*z.*a.*m" -> ".*z.*a.*m.*"
+      String regexPattern = strsWithWildCards.join('');
+
+      // \ escape char is replaced by \\ to simulate raw string.
+      regexPattern = regexPattern.replaceAll(r"\", r"\\");
+      print("escaped regexPattern $regexPattern");
+
+      RegExp regExp = new RegExp(
+        "$regexPattern",
+        caseSensitive: false,
+        multiLine: false,
+      );
+
+      return regExp.hasMatch("$itemName") || regExp.hasMatch("$itemNickName");
+    }).toList();
+    print("got ${result.length} FUZZY SEARCH results");
+    return result;
   }
 }

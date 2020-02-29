@@ -1,6 +1,5 @@
 import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/utils/window.dart';
@@ -21,7 +20,7 @@ class SalesEntryForm extends StatefulWidget {
   // When an item is right swiped from itemList a quick sales form is presented
   // This form obiously shouldNot have itemName field so the itemList will pass
   // the name of item to this form
-  final DocumentSnapshot swipeData;
+  final Item swipeData;
 
   SalesEntryForm(
       {this.title,
@@ -109,19 +108,19 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
         });
       }
 
-      Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItemById(
+      Future<Item> itemFuture = crudHelper.getItemById(
         this.transaction.itemId,
       );
-      itemSnapshotFuture.then((itemSnapshot) {
-        if (itemSnapshot?.data == null) {
+      itemFuture.then((item) {
+        if (item == null) {
           setState(() {
             this.disclaimerText =
                 'Orphan Transaction: The item associated with this transaction has been deleted';
           });
         } else {
-          debugPrint("hi this item is $itemSnapshot");
-          this.itemNameController.text = '${itemSnapshot.data['name']}';
-          this.tempItemId = itemSnapshot.documentID;
+          debugPrint("hi this item is $item");
+          this.itemNameController.text = '${item.name}';
+          this.tempItemId = item.id;
         }
       });
     }
@@ -317,18 +316,18 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   void updateItemName() {
     var name = this.itemNameController.text;
-    Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItem(
+    Future<Item> itemFuture = crudHelper.getItem(
       "name",
       name,
     );
-    itemSnapshotFuture.then((itemSnapshot) {
-      debugPrint("Update item name got snapshot $itemSnapshot");
-      if (itemSnapshot == null) {
+    itemFuture.then((item) {
+      debugPrint("Update item name got snapshot $item");
+      if (item == null) {
         this.stringUnderName = 'Unregistered name';
         this.tempItemId = null;
       } else {
         this.stringUnderName = '';
-        this.tempItemId = itemSnapshot.documentID;
+        this.tempItemId = item.id;
       }
     }, onError: (e) {
       debugPrint('UpdateitemName Error::  $e');
@@ -360,13 +359,12 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       WindowUtils.showAlertDialog(context, "Failed!", message);
     }
 
-    DocumentSnapshot itemSnapshot;
-
-    if (this.widget.swipeData?.exists ?? false) {
+    Item item;
+    if (this.widget.swipeData ?? false) {
       debugPrint("Using swipeData to save");
-      itemSnapshot = this.widget.swipeData;
+      item = this.widget.swipeData;
     } else {
-      itemSnapshot = await crudHelper
+      item = await crudHelper
           .getItemById(
         this.tempItemId,
       )
@@ -375,14 +373,13 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       });
     }
 
-    debugPrint("Saving sales item snapshot is $itemSnapshot");
-    if (itemSnapshot?.data == null) {
+    debugPrint("Saving sales item is $item");
+    if (item == null) {
       _alertFail("Item not registered");
       return;
     }
 
-    Item item = Item.fromMapObject(itemSnapshot.data);
-    String itemId = itemSnapshot.documentID;
+    String itemId = item.id;
     double items = double.parse(this.itemNumberController.text).abs();
 
     // Additional checks.
@@ -434,15 +431,14 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       return;
     } else {
       // Initialize the item to reset it.
-      DocumentSnapshot itemSnapshot =
-          await crudHelper.getItemById(this.transaction.itemId);
+      Item item = await crudHelper.getItemById(this.transaction.itemId);
 
       // Case 2: Delete item from database after user confirms again
       WindowUtils.showAlertDialog(context, "Delete?",
           "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
-            this.transaction, this.transactionId, itemSnapshot, userData);
+            this.transaction, this.transactionId, item, userData);
       });
     }
   }

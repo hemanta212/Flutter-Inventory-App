@@ -62,18 +62,19 @@ class CrudHelper {
     }
   }
 
-  Stream<QuerySnapshot> getItemStream() {
+  Stream<List<Item>> getItemStream() {
     String email = this.userData.targetEmail;
     print("Stream current target email $email");
     return Firestore.instance
         .collection('$email-items')
         .orderBy('used', descending: true)
-        .snapshots();
+        .snapshots()
+        .map(Item.fromQuerySnapshot);
   }
 
-  Future<DocumentSnapshot> getItem(String field, String value) async {
+  Future<Item> getItem(String field, String value) async {
     String email = this.userData.targetEmail;
-    QuerySnapshot itemSnapshot = await Firestore.instance
+    QuerySnapshot itemSnapshots = await Firestore.instance
         .collection('$email-items')
         .where(field, isEqualTo: value)
         .getDocuments()
@@ -81,22 +82,35 @@ class CrudHelper {
       return null;
     });
 
-    if (itemSnapshot.documents.isEmpty) {
+    if (itemSnapshots.documents.isEmpty) {
       return null;
     }
-    return itemSnapshot.documents.first;
+    DocumentSnapshot itemSnapshot = itemSnapshots.documents.first;
+
+    if (itemSnapshot.data.isNotEmpty) {
+      Item item = Item.fromMapObject(itemSnapshot.data);
+      item.id = itemSnapshot.documentID;
+      return item;
+    } else {
+      return null;
+    }
   }
 
-  Future<DocumentSnapshot> getItemById(String id) async {
+  Future<Item> getItemById(String id) async {
     String email = this.userData.targetEmail;
-    DocumentSnapshot item = await Firestore.instance
+    DocumentSnapshot itemSnapshot = await Firestore.instance
         .document('$email-items/$id')
         .get()
         .catchError((e) {
       return null;
     });
-
-    return item;
+    if (itemSnapshot.data.isNotEmpty) {
+      Item item = Item.fromMapObject(itemSnapshot.data);
+      item.id = itemSnapshot.documentID;
+      return item;
+    } else {
+      return null;
+    }
   }
 
   Future<List<Item>> getItems() async {

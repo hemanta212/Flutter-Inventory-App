@@ -17,7 +17,7 @@ class StockEntryForm extends StatefulWidget {
   final ItemTransaction transaction;
   final bool forEdit;
   final String transactionId;
-  final DocumentSnapshot swipeData;
+  final Item swipeData;
 
   StockEntryForm(
       {this.transaction,
@@ -99,21 +99,20 @@ class _StockEntryFormState extends State<StockEntryForm> {
         this.enableAdvancedFields = true;
       }
 
-      Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItemById(
+      Future<Item> itemFuture = crudHelper.getItemById(
         this.transaction.itemId,
       );
-      itemSnapshotFuture.then((itemSnapshot) {
-        if (itemSnapshot?.data == null) {
+      itemFuture.then((item) {
+        if (item == null) {
           setState(() {
             this.disclaimerText =
                 'Orphan Transaction: The item associated with this transaction has been deleted';
           });
         } else {
-          debugPrint(
-              "Got item snapshot data to fill form ${itemSnapshot.data}");
-          this.itemNameController.text = '${itemSnapshot.data['name']}';
-          this.markedPriceController.text = itemSnapshot.data['marked_price'];
-          this.tempItemId = itemSnapshot.documentID;
+          debugPrint("Got item snapshot data to fill form $item");
+          this.itemNameController.text = '${item.name}';
+          this.markedPriceController.text = item.markedPrice;
+          this.tempItemId = item.id;
         }
       });
     }
@@ -292,18 +291,18 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
   void updateItemName() {
     String name = this.itemNameController.text;
-    Future<DocumentSnapshot> itemSnapshotFuture = crudHelper.getItem(
+    Future<Item> itemFuture = crudHelper.getItem(
       "name",
       name,
     );
-    itemSnapshotFuture.then((itemSnapshot) {
-      if (itemSnapshot == null) {
-        debugPrint("Update item name got snapshot $itemSnapshot");
+    itemFuture.then((item) {
+      if (item == null) {
+        debugPrint("Update item name got snapshot $item");
         this.stringUnderName = 'Unregistered item';
         this.tempItemId = null;
       } else {
         this.stringUnderName = '';
-        this.tempItemId = itemSnapshot.documentID;
+        this.tempItemId = item.id;
       }
     }, onError: (e) {
       debugPrint('UpdateitemName Error::  $e');
@@ -338,25 +337,24 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
   // Save data to database
   void _save() async {
-    DocumentSnapshot itemSnapshot;
+    Item item;
 
-    if (this.widget.swipeData?.exists ?? false) {
+    if (this.widget.swipeData ?? false) {
       debugPrint("Using swipeData to save");
-      itemSnapshot = this.widget.swipeData;
+      item = this.widget.swipeData;
     } else {
-      itemSnapshot = await crudHelper.getItemById(
+      item = await crudHelper.getItemById(
         this.tempItemId,
       );
     }
 
-    if (itemSnapshot.data == null) {
+    if (item == null) {
       WindowUtils.showAlertDialog(
           this.context, "Failed!", "Item not registered");
       return;
     }
 
-    Item item = Item.fromMapObject(itemSnapshot.data);
-    String itemId = itemSnapshot.documentID;
+    String itemId = item.id;
     double items = double.parse(this.itemNumberController.text).abs();
     double totalCostPrice = double.parse(this.costPriceController.text).abs();
 
@@ -414,7 +412,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
       return;
     } else {
-      DocumentSnapshot itemSnapshot = await crudHelper.getItemById(
+      Item item = await crudHelper.getItemById(
         this.transaction.itemId,
       );
 
@@ -423,7 +421,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
           "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
-            this.transaction, this.transactionId, itemSnapshot, userData);
+            this.transaction, this.transactionId, item, userData);
       });
     }
   }

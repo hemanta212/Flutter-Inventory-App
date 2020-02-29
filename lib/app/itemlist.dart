@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,8 +22,11 @@ class ItemList extends StatefulWidget {
 
 class ItemListState extends State<ItemList> {
   static CrudHelper crudHelper;
-  Stream<QuerySnapshot> items;
+  Stream<List<Item>> items;
+  static List<Item> _itemsList;
+  List<Item> itemsList = List<Item>();
   static UserData userData;
+  bool showSearchBar = false;
 
   @override
   void initState() {
@@ -43,15 +45,29 @@ class ItemListState extends State<ItemList> {
 
   @override
   Widget build(BuildContext context) {
+    print("I am called");
     if (userData == null) {
       return Wrapper();
     }
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Items"),
-      ),
+      appBar: this.showSearchBar
+          ? null
+          : AppBar(
+              title: Text("Items"),
+              actions: <Widget>[
+                IconButton(
+                  tooltip: "Search",
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    setState(() {
+                      this.showSearchBar = true;
+                    });
+                  },
+                ),
+              ],
+            ),
       drawer: CustomScaffold.setDrawer(context),
-      body: getItemListView(),
+      body: this.showSearchBar ? getSearchView() : getItemListView(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           navigateToDetail(Item(''), 'Create Item');
@@ -69,10 +85,9 @@ class ItemListState extends State<ItemList> {
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return ListView.builder(
-              itemCount: snapshot.data.documents.length,
+              itemCount: snapshot.data.length,
               itemBuilder: (BuildContext context, int index) {
-                DocumentSnapshot itemSnapshot = snapshot.data.documents[index];
-                Item item = Item.fromMapObject(itemSnapshot.data);
+                Item item = snapshot.data[index];
                 return GestureDetector(
                     key: Key(item.name),
                     child: ListTile(
@@ -87,15 +102,15 @@ class ItemListState extends State<ItemList> {
                         this._showItemInfoDialog(item);
                       },
                       onLongPress: () {
-                        String itemId = itemSnapshot.documentID;
+                        String itemId = item.id;
                         navigateToDetail(item, 'Edit Item', itemId: itemId);
                       },
                     ),
                     onVerticalDragEnd: (DragEndDetails details) {
-                      this._initiateTransaction("Stock Entry", itemSnapshot);
+                      this._initiateTransaction("Stock Entry", item);
                     },
                     onHorizontalDragEnd: (DragEndDetails details) {
-                      this._initiateTransaction("Sales Entry", itemSnapshot);
+                      this._initiateTransaction("Sales Entry", item);
                     });
               },
             );
@@ -167,22 +182,22 @@ class ItemListState extends State<ItemList> {
     }
   }
 
-  void _initiateTransaction(String formName, itemSnapshot) async {
-    String itemName = itemSnapshot.data['name'];
+  void _initiateTransaction(String formName, item) async {
+    String itemName = item.name;
     Map formMap = {
-      'Sales Entry':
-          SalesEntryForm(swipeData: itemSnapshot, title: "Sell $itemName"),
-      'Stock Entry':
-          StockEntryForm(swipeData: itemSnapshot, title: "Buy $itemName")
+      'Sales Entry': SalesEntryForm(swipeData: item, title: "Sell $itemName"),
+      'Stock Entry': StockEntryForm(swipeData: item, title: "Buy $itemName")
     };
 
     await Navigator.push(
         context, MaterialPageRoute(builder: (context) => formMap[formName]));
   }
 
-  void _updateListView() {
+  void _updateListView() async {
+    _itemsList = await crudHelper.getItems();
     setState(() {
       this.items = crudHelper.getItemStream();
+      this.itemsList = _itemsList;
     });
   }
 
@@ -204,5 +219,79 @@ class ItemListState extends State<ItemList> {
             ],
           )),
     ]);
+  }
+
+  void _modifyItemList(String val) async {
+    List<Map> itemsMapList =
+        _itemsList.map((Item item) => item.toMap()).toList();
+    List<Map> _suggestions =
+        FormUtils.genFuzzySuggestionsForItem(val, itemsMapList);
+    this.itemsList = _suggestions.map((Map itemMap) {
+      return Item.fromMapObject(itemMap);
+    }).toList();
+  }
+
+  Widget getSearchView({type}) {
+    print("search view && ${this.itemsList}");
+    ThemeData localTheme = Theme.of(context);
+    return Container(
+        child: Column(children: <Widget>[
+      SizedBox(height: 30.0),
+      Padding(
+          padding: const EdgeInsets.only(right: 8.0, left: 8.0),
+          child: Row(children: <Widget>[
+            Expanded(
+                child: TextField(
+              autofocus: true,
+              onChanged: (value) {
+                setState(() {
+                  _modifyItemList(value);
+                });
+              },
+              decoration: InputDecoration(
+                  contentPadding: EdgeInsets.zero,
+                  hintText: "Search",
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(25.0)))),
+            )),
+            IconButton(
+                icon: Icon(Icons.cancel),
+                onPressed: () {
+                  setState(() => this.showSearchBar = false);
+                }),
+          ])),
+      Expanded(
+          child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: this.itemsList.length,
+              itemBuilder: (BuildContext context, int index) {
+                Item item = this.itemsList[index];
+                return GestureDetector(
+                    key: Key(item.name),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.red,
+                        child: Icon(Icons.keyboard_arrow_right),
+                      ),
+                      title: _getNameAndPrice(context, item),
+                      subtitle: Text(item.nickName ?? '',
+                          style: localTheme.textTheme.body1),
+                      onTap: () {
+                        this._showItemInfoDialog(item);
+                      },
+                      onLongPress: () {
+                        String itemId = item.id;
+                        navigateToDetail(item, 'Edit Item', itemId: itemId);
+                      },
+                    ),
+                    onVerticalDragEnd: (DragEndDetails details) {
+                      this._initiateTransaction("Stock Entry", item);
+                    },
+                    onHorizontalDragEnd: (DragEndDetails details) {
+                      this._initiateTransaction("Sales Entry", item);
+                    });
+              }))
+    ]));
   }
 }

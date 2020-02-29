@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+
+import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/app/forms/itemEntryForm.dart';
 import 'package:bk_app/app/forms/salesEntryForm.dart';
 import 'package:bk_app/app/forms/stockEntryForm.dart';
@@ -176,7 +178,7 @@ class WindowUtils {
         if (suggestions.isEmpty) {
           suggestions = getSuggestions();
         }
-        return _genFuzzySuggestions(givenString, suggestions);
+        return FormUtils.genFuzzySuggestionsForItem(givenString, suggestions);
       },
       itemBuilder: (context, suggestion) {
         return Container(
@@ -200,36 +202,5 @@ class WindowUtils {
         onChanged();
       },
     );
-  }
-
-  static List _genFuzzySuggestions(String sampleString, List sourceList) {
-    if (sourceList.isEmpty) {
-      return sourceList;
-    }
-    return sourceList.where((map) {
-      String itemName = map['name'].toLowerCase();
-      String itemNickName = map['nickName']?.toLowerCase() ?? '';
-
-      // Takes: user given string | constructs -> regexPattern
-      // e.g: "zam" -> ".*z.*a.*m.*"
-      List<String> strsWithWildCards = "$sampleString"
-          .split("")
-          .map((letter) => ".*$letter")
-          .toList(); // Makes "zam" -> ".*z.*a.*m"
-      strsWithWildCards.add('.*'); // ".*z.*a.*m" -> ".*z.*a.*m.*"
-      String regexPattern = strsWithWildCards.join('');
-
-      // \ escape char is replaced by \\ to simulate raw string.
-      regexPattern = regexPattern.replaceAll(r"\", r"\\");
-      debugPrint("escaped regexPattern $regexPattern");
-
-      RegExp regExp = new RegExp(
-        "$regexPattern",
-        caseSensitive: false,
-        multiLine: false,
-      );
-
-      return regExp.hasMatch("$itemName") || regExp.hasMatch("$itemNickName");
-    }).toList();
   }
 }
