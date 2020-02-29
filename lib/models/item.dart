@@ -10,6 +10,7 @@ class Item {
   double _totalStock = 0.0;
   String _lastStockEntry;
   int _used = 0;
+  Map _units;
 
   Item(
     this._name, [
@@ -37,6 +38,7 @@ class Item {
   double get totalStock => _totalStock;
 
   int get used => _used;
+  Map get units => _units;
 
   set id(String newId) {
     this._id = newId;
@@ -76,6 +78,10 @@ class Item {
 
   set totalStock(double newTotalStock) {
     this._totalStock = newTotalStock;
+  }
+
+  set units(Map newUnits) {
+    this._units = newUnits;
   }
 
   void increaseStock(double addedStock) {
@@ -154,7 +160,7 @@ class Item {
       items.add(item);
     });
     items.sort((a, b) {
-      return a.used.compareTo(b.used);
+      return b.used.compareTo(a.used);
     });
     return items;
   }
@@ -172,6 +178,7 @@ class Item {
     map['total_stock'] = _totalStock;
     map['last_stock_entry'] = _lastStockEntry;
     map['used'] = _used;
+    map['units'] = _units;
     return map;
   }
 
@@ -186,5 +193,6 @@ class Item {
     this._totalStock = map['total_stock'];
     this._lastStockEntry = map['last_stock_entry'];
     this._used = map['used'];
+    this._units = map['units'];
   }
 }

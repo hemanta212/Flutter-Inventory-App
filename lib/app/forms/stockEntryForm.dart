@@ -1,5 +1,4 @@
 import 'package:bk_app/models/user.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'package:bk_app/app/wrapper.dart';
@@ -54,6 +53,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
   List<Map> itemNamesAndNicknames = List<Map>();
   bool enableAdvancedFields = false;
 
+  List units = List();
+  String selectedUnit = '';
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNumberController = TextEditingController();
   TextEditingController costPriceController = TextEditingController();
@@ -85,6 +86,14 @@ class _StockEntryFormState extends State<StockEntryForm> {
       this.transaction = ItemTransaction(1, null, 0.0, 0.0, '');
     }
 
+    if (this.widget.swipeData != null) {
+      Item item = this.widget.swipeData;
+      this.units = item.units?.keys?.toList() ?? List();
+      if (this.units.isNotEmpty) {
+        this.units.add('');
+      }
+    }
+
     if (this.transactionId != null) {
       debugPrint("Getting transanction obj");
       this.itemNumberController.text =
@@ -113,6 +122,10 @@ class _StockEntryFormState extends State<StockEntryForm> {
           this.itemNameController.text = '${item.name}';
           this.markedPriceController.text = item.markedPrice;
           this.tempItemId = item.id;
+          this.units = item.units?.keys ?? List<String>();
+          if (this.units.isNotEmpty) {
+            this.units.add('');
+          }
         }
       });
     }
@@ -176,25 +189,48 @@ class _StockEntryFormState extends State<StockEntryForm> {
                     ),
 
                     // No of items
-                    WindowUtils.genTextField(
-                      labelText: "Quantity",
-                      hintText: "No of items",
-                      textStyle: textStyle,
-                      controller: this.itemNumberController,
-                      keyboardType: TextInputType.number,
-                      validator: (String value, String labelText) {
-                        if (value == '0.0' || value == '0' || value.isEmpty) {
-                          return '';
-                        }
-                      },
-                      onChanged: () {},
-                    ),
+                    Row(children: <Widget>[
+                      Expanded(
+                          flex: 2,
+                          child: WindowUtils.genTextField(
+                            labelText: "Quantity",
+                            hintText: "No of items",
+                            textStyle: textStyle,
+                            controller: this.itemNumberController,
+                            keyboardType: TextInputType.number,
+                            validator: (String value, String labelText) {
+                              if (value == '0.0' ||
+                                  value == '0' ||
+                                  value.isEmpty) {
+                                return '';
+                              } else {
+                                return null;
+                              }
+                            },
+                            onChanged: () {},
+                          )),
 
-                    // TODO
-                    /* Provide user to register using  Big unit terms like
-            1 box = 15 items
-            1 cartoon = 5 box
-            */
+                      Visibility(
+                          visible: this.units.isNotEmpty,
+                          child: Padding(
+                              padding: EdgeInsets.only(right: 5.0, left: 10.0),
+                              child: DropdownButton<String>(
+                                items: this.units.map((dropDownStringItem) {
+                                  return DropdownMenuItem<String>(
+                                    value: dropDownStringItem,
+                                    child: Text(dropDownStringItem),
+                                  ); // DropdownMenuItem
+                                }).toList(),
+
+                                onChanged: (String newValueSelected) {
+                                  setState(() {
+                                    this.selectedUnit = newValueSelected;
+                                  });
+                                }, //onChanged
+
+                                value: this.selectedUnit,
+                              ))), // DropdownButton
+                    ]),
 
                     // Cost price
                     WindowUtils.genTextField(
@@ -326,6 +362,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.duePriceController.text = '';
     this.descriptionController.text = '';
     this.enableAdvancedFields = false;
+    this.units = List();
+    this.selectedUnit = '';
     this.transaction = ItemTransaction(1, null, 0.0, 0.0, '');
   }
 
@@ -339,7 +377,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
   void _save() async {
     Item item;
 
-    if (this.widget.swipeData ?? false) {
+    if (this.widget.swipeData != null) {
       debugPrint("Using swipeData to save");
       item = this.widget.swipeData;
     } else {
@@ -355,7 +393,14 @@ class _StockEntryFormState extends State<StockEntryForm> {
     }
 
     String itemId = item.id;
-    double items = double.parse(this.itemNumberController.text).abs();
+    double unitMultiple = 1.0;
+    if (this.selectedUnit != '') {
+      if (item.units?.containsKey(this.selectedUnit) ?? false) {
+        unitMultiple = item.units[this.selectedUnit];
+      }
+    }
+    double items =
+        double.parse(this.itemNumberController.text).abs() * unitMultiple;
     double totalCostPrice = double.parse(this.costPriceController.text).abs();
 
     if (this.transactionId != null &&

@@ -57,6 +57,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   String tempItemId;
   bool enableAdvancedFields = false;
 
+  List units = List();
+  String selectedUnit = '';
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNumberController = TextEditingController();
   TextEditingController sellingPriceController = TextEditingController();
@@ -88,6 +90,13 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     if (this.transaction == null) {
       debugPrint("Building own transaction obj");
       this.transaction = ItemTransaction(0, null, 0.0, 0.0, '');
+    }
+    if (this.widget.swipeData != null) {
+      Item item = this.widget.swipeData;
+      this.units = item.units?.keys?.toList() ?? List();
+      if (this.units.isNotEmpty) {
+        this.units.add('');
+      }
     }
 
     if (this.transactionId != null) {
@@ -121,6 +130,10 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
           debugPrint("hi this item is $item");
           this.itemNameController.text = '${item.name}';
           this.tempItemId = item.id;
+          this.units = item.units?.keys ?? List<String>();
+          if (this.units.isNotEmpty) {
+            this.units.add('');
+          }
         }
       });
     }
@@ -185,21 +198,48 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
                           child: Text(this.stringUnderName)),
                     ),
 
-                    // No of items
-                    WindowUtils.genTextField(
-                        labelText: "Quantity",
-                        hintText: "No of items sold",
-                        textStyle: textStyle,
-                        controller: this.itemNumberController,
-                        keyboardType: TextInputType.number,
-                        validator: (String value, String labelText) {
-                          if (value == '0.0' || value == '0' || value.isEmpty) {
-                            return "$labelText is empty or zero";
-                          } else {
-                            return null;
-                          }
-                        },
-                        onChanged: () {}),
+                    Row(children: <Widget>[
+                      // No of items
+                      Expanded(
+                        flex: 2,
+                        child: WindowUtils.genTextField(
+                            labelText: "Quantity",
+                            hintText: "No of items sold",
+                            textStyle: textStyle,
+                            controller: this.itemNumberController,
+                            keyboardType: TextInputType.number,
+                            validator: (String value, String labelText) {
+                              if (value == '0.0' ||
+                                  value == '0' ||
+                                  value.isEmpty) {
+                                return "$labelText is empty or zero";
+                              } else {
+                                return null;
+                              }
+                            },
+                            onChanged: () {}),
+                      ),
+                      Visibility(
+                          visible: this.units.isNotEmpty,
+                          child: Padding(
+                              padding: EdgeInsets.only(right: 5.0, left: 10.0),
+                              child: DropdownButton<String>(
+                                items: this.units.map((dropDownStringItem) {
+                                  return DropdownMenuItem<String>(
+                                    value: dropDownStringItem,
+                                    child: Text(dropDownStringItem),
+                                  ); // DropdownMenuItem
+                                }).toList(),
+
+                                onChanged: (String newValueSelected) {
+                                  setState(() {
+                                    this.selectedUnit = newValueSelected;
+                                  });
+                                }, //onChanged
+
+                                value: this.selectedUnit,
+                              ))), // DropdownButton
+                    ]),
 
                     // Selling price
                     WindowUtils.genTextField(
@@ -342,6 +382,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.descriptionController.text = '';
     this.duePriceController.text = '';
     this.enableAdvancedFields = false;
+    this.units = List();
+    this.selectedUnit = '';
     this.transaction = ItemTransaction(0, null, 0.0, 0.0, '');
   }
 
@@ -360,7 +402,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     }
 
     Item item;
-    if (this.widget.swipeData ?? false) {
+    if (this.widget.swipeData != null) {
       debugPrint("Using swipeData to save");
       item = this.widget.swipeData;
     } else {
@@ -380,7 +422,14 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     }
 
     String itemId = item.id;
-    double items = double.parse(this.itemNumberController.text).abs();
+    double unitMultiple = 1.0;
+    if (this.selectedUnit != '') {
+      if (item.units?.containsKey(this.selectedUnit) ?? false) {
+        unitMultiple = item.units[this.selectedUnit];
+      }
+    }
+    double items =
+        double.parse(this.itemNumberController.text).abs() * unitMultiple;
 
     // Additional checks.
     if ((this.transactionId == null && this.transaction.itemId != itemId) ||

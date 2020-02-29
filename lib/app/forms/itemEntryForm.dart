@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/wrapper.dart';
@@ -44,6 +43,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   String stringUnderNickName = '';
   String _currentFormSelected;
 
+  Map<String, double> units = Map<String, double>();
   TextEditingController itemNameController = TextEditingController();
   TextEditingController itemNickNameController = TextEditingController();
   TextEditingController markedPriceController = TextEditingController();
@@ -81,6 +81,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
             FormUtils.fmtToIntIfPossible(this.item.totalStock);
       }
       this.descriptionController.text = this.item.description ?? '';
+      // this.units
     }
   }
 
@@ -173,12 +174,6 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                           onChanged: () {},
                         )),
 
-                    // TODO
-                    /* Provide user to define Big unit terms like
-                      1 box = 15 items
-                      1 cartoon = 5 box
-                    */
-
                     // Item Description
                     WindowUtils.genTextField(
                         labelText: "Description",
@@ -194,6 +189,27 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                           });
                         }),
 
+                    SizedBox(height: 20.0),
+                    Row(children: <Widget>[
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                            child: Text('Custom Units', style: textStyle)),
+                      ),
+                      RaisedButton(
+                          color: Colors.blue[400],
+                          child: Text(
+                            'Add units',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              this.showDialogForUnits();
+                            });
+                          }),
+                    ]),
+                    this.showUnitsMapping(),
+                    SizedBox(height: 20.0),
                     // save
                     Padding(
                         padding: EdgeInsets.only(
@@ -234,10 +250,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   // Update the title of the Item obj
   void updateItemName() {
     String givenName = this.itemNameController.text;
-    Future<DocumentSnapshot> duplicate = crudHelper.getItem('name', givenName);
+    Future<Item> duplicate = crudHelper.getItem('name', givenName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
-      if (value != null && this.itemId != value.documentID) {
+      if (value != null && this.itemId != value.id) {
         this.stringUnderName = 'Name already registered';
         this.item.name = '';
       } else {
@@ -257,11 +273,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void updateItemNickName() {
     String givenNickName = this.itemNickNameController.text;
-    Future<DocumentSnapshot> duplicate =
-        crudHelper.getItem('nick_name', givenNickName);
+    Future<Item> duplicate = crudHelper.getItem('nick_name', givenNickName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
-      if (value != null && this.itemId != value.documentID) {
+      if (value != null && this.itemId != value.id) {
         this.stringUnderNickName = 'Nick name already registered';
       } else {
         this.stringUnderNickName = '';
@@ -369,5 +384,131 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   void refreshItemMapCache() async {
     // refresh item map cache since item is changed.
     await StartupCache(userData: userData, reload: true).itemMap;
+  }
+
+  Widget showUnitsMapping() {
+    double _minimumPadding = 5.0;
+    print("Units ${this.item.units}");
+    return this.item.units?.isNotEmpty ?? false
+        ? Padding(
+            padding: EdgeInsets.only(right: 1.0, left: 1.0),
+            child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: this.item.units.keys?.length ?? 0,
+                itemBuilder: (BuildContext context, int index) {
+                  String name = this.item.units.keys.toList()[index];
+                  double quantity = double.parse("${this.item.units[name]}");
+                  return Card(
+                      elevation: 5.0,
+                      child: Row(children: <Widget>[
+                        Expanded(
+                            flex: 1,
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                  top: _minimumPadding * 3,
+                                  bottom: _minimumPadding * 3),
+                              padding: EdgeInsets.all(_minimumPadding),
+                              child: Text(name, softWrap: true),
+                            )),
+                        Expanded(
+                            child: Padding(
+                          padding: EdgeInsets.all(_minimumPadding),
+                          child: Text(FormUtils.fmtToIntIfPossible(quantity),
+                              softWrap: true),
+                        )),
+                        GestureDetector(
+                            child: Icon(Icons.edit),
+                            onTap: () {
+                              setState(() {
+                                showDialogForUnits(
+                                    name: name, quantity: quantity);
+                              });
+                            }),
+                      ]));
+                }))
+        : SizedBox(width: 20.0);
+  }
+
+  void showDialogForUnits({String name, double quantity}) {
+    final _unitFormKey = GlobalKey<FormState>();
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+              elevation: 5.0,
+              title: Text(
+                "Add units",
+              ),
+              content: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Form(
+                      key: _unitFormKey,
+                      child: ListView(children: <Widget>[
+                        TextFormField(
+                            initialValue: name ?? '',
+                            decoration: InputDecoration(
+                              labelText: "Unit name",
+                            ),
+                            onChanged: (val) => setState(() => name = val),
+                            validator: (val) {
+                              if (val?.isEmpty ?? false) {
+                                return "Please fill this field";
+                              } else {
+                                return null;
+                              }
+                            }),
+                        SizedBox(width: 20.0),
+                        TextFormField(
+                            initialValue:
+                                FormUtils.fmtToIntIfPossible(quantity),
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: "Quantity",
+                            ),
+                            validator: (val) {
+                              if (val?.isEmpty ?? false) {
+                                return "Please fill this field";
+                              }
+                              try {
+                                quantity = double.parse(val).abs();
+                                return null;
+                              } catch (e) {
+                                return "Invalid value";
+                              }
+                            }),
+                        SizedBox(width: 20.0),
+                        RaisedButton(
+                            color: Colors.blue[400],
+                            child: Text(
+                              'Add',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            onPressed: () async {
+                              if (_unitFormKey.currentState.validate()) {
+                                if (this.item.units == null) {
+                                  this.item.units = Map();
+                                }
+                                this.item.units[name] = quantity;
+                                print("Updating this item ${this.item.units}");
+                                setState(() => Navigator.pop(context));
+                              }
+                            }),
+                        RaisedButton(
+                            color: Colors.red[400],
+                            child: Text(
+                              'Delete',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            onPressed: () async {
+                              if (this.item.units.containsKey(name)) {
+                                this.item.units.remove(name);
+                              }
+                              quantity =
+                                  null; // it will be formatted to '' in TextField
+                              name = '';
+                              setState(() => Navigator.pop(context));
+                            }),
+                      ]))));
+        });
   }
 }
