@@ -24,7 +24,8 @@ jobs:
           cd app
           flutter pub get
           flutter build apk
-          mkdir build/app/outputs/apk/app_release && mv build/app/outputs/apk/release/*.apk build/app/outputs/apk/app_release/
+          mkdir build/app/outputs/apk/app_release
+          mv build/app/outputs/apk/release/*.apk build/app/outputs/apk/app_release/
           flutter build apk --target-platform android-arm,android-arm64,android-x64 --split-per-abi
 
       - name: Release
@@ -37,6 +38,6 @@ jobs:
             app/build/app/outputs/apk/release/app-x86_64-release.apk
             app/build/app/outputs/apk/app_release/app-release.apk
           body_path: app/CHANGELOG.txt
-          prerelease: true
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

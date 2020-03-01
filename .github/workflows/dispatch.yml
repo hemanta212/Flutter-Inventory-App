@@ -1,0 +1,17 @@
+name: Repository Dispatch
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          repository: hemanta212/hello_flutter
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          event-type: bookkeeping_app-release
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
