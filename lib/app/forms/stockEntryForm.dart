@@ -122,10 +122,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
           this.itemNameController.text = '${item.name}';
           this.markedPriceController.text = item.markedPrice;
           this.tempItemId = item.id;
-          this.units = item.units?.keys ?? List<String>();
-          if (this.units.isNotEmpty) {
-            this.units.add('');
-          }
+          this._addUnitsIfPresent(item);
         }
       });
     }
@@ -336,9 +333,11 @@ class _StockEntryFormState extends State<StockEntryForm> {
         debugPrint("Update item name got snapshot $item");
         this.stringUnderName = 'Unregistered item';
         this.tempItemId = null;
+        setState(() => this.units = List());
       } else {
         this.stringUnderName = '';
         this.tempItemId = item.id;
+        setState(() => this._addUnitsIfPresent(item));
       }
     }, onError: (e) {
       debugPrint('UpdateitemName Error::  $e');
@@ -365,6 +364,15 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.units = List();
     this.selectedUnit = '';
     this.transaction = ItemTransaction(1, null, 0.0, 0.0, '');
+  }
+
+  void _addUnitsIfPresent(item) {
+    if (item.units != null) {
+      this.units = item.units.keys.toList();
+      this.units.add('');
+    } else {
+      this.units = List();
+    }
   }
 
   void checkAndSave() {
@@ -436,11 +444,11 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
     this.transaction.amount = totalCostPrice;
 
-    bool success = await FormUtils.saveTransactionAndUpdateItem(
+    String message = await FormUtils.saveTransactionAndUpdateItem(
         this.transaction, item, itemId,
         transactionId: this.transactionId, userData: userData);
 
-    this.saveCallback(success);
+    this.saveCallback(message);
   }
 
   bool _beingApproved() {
@@ -471,8 +479,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
     }
   }
 
-  void saveCallback(bool success) {
-    if (success) {
+  void saveCallback(String message) {
+    if (message.isEmpty) {
       this.clearFieldsAndTransaction();
       if (this.widget.forEdit ?? false) {
         WindowUtils.moveToLastScreen(this.context, modified: true);
@@ -484,8 +492,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
           this.context, "Status", 'Stock updated successfully');
     } else {
       // Failure
-      WindowUtils.showAlertDialog(
-          this.context, 'Failed!', 'Problem updating stock, try again!');
+      WindowUtils.showAlertDialog(this.context, 'Failed!', message);
     }
   }
 

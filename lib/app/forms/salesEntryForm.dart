@@ -130,10 +130,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
           debugPrint("hi this item is $item");
           this.itemNameController.text = '${item.name}';
           this.tempItemId = item.id;
-          this.units = item.units?.keys ?? List<String>();
-          if (this.units.isNotEmpty) {
-            this.units.add('');
-          }
+          this._addUnitsIfPresent(item);
         }
       });
     }
@@ -361,13 +358,14 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       name,
     );
     itemFuture.then((item) {
-      debugPrint("Update item name got snapshot $item");
       if (item == null) {
         this.stringUnderName = 'Unregistered name';
         this.tempItemId = null;
+        setState(() => this.units = List());
       } else {
         this.stringUnderName = '';
         this.tempItemId = item.id;
+        setState(() => this._addUnitsIfPresent(item));
       }
     }, onError: (e) {
       debugPrint('UpdateitemName Error::  $e');
@@ -385,6 +383,15 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.units = List();
     this.selectedUnit = '';
     this.transaction = ItemTransaction(0, null, 0.0, 0.0, '');
+  }
+
+  void _addUnitsIfPresent(item) {
+    if (item.units != null) {
+      this.units = item.units.keys.toList();
+      this.units.add('');
+    } else {
+      this.units = List();
+    }
   }
 
   void checkAndSave() {
@@ -459,11 +466,11 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.transaction.itemId = itemId;
     this.transaction.items = items;
 
-    bool success = await FormUtils.saveTransactionAndUpdateItem(
+    String message = await FormUtils.saveTransactionAndUpdateItem(
         this.transaction, item, itemId,
         transactionId: this.transactionId, userData: userData);
 
-    this.saveCallback(success);
+    this.saveCallback(message);
   }
 
   bool _beingApproved() {
@@ -492,8 +499,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     }
   }
 
-  void saveCallback(bool success) {
-    if (success) {
+  void saveCallback(String message) {
+    if (message.isEmpty) {
       this.clearFieldsAndTransaction();
       if (this.widget.forEdit ?? false) {
         WindowUtils.moveToLastScreen(this.context, modified: true);
@@ -506,7 +513,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     } else {
       // Failure
       WindowUtils.showAlertDialog(
-          this.context, 'Failed!', 'Problem updating stock, try again!');
+          this.context, 'Failed!', message);
     }
   }
 

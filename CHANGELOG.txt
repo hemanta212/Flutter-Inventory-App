@@ -1,8 +1,4 @@
-Version 0.9.3
+Version 0.9.1
 
-* Introduces the units support. Currently units is only displayed when swiped from itemlist
-* Added search bar in the itemlist page
-* Settings page fully works
-* Marked price is now String i.e you can input ranges 45-100
-* Adds daily sales summary viewer
-
+* Improved permission denied messages.
+* Implemented the Units throughout the app.

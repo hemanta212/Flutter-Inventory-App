@@ -29,11 +29,11 @@ class FormUtils {
     return transaction.signature == userData.email;
   }
 
-  static Future<bool> saveTransactionAndUpdateItem(
+  static Future<String> saveTransactionAndUpdateItem(
       transaction, item, String itemId,
       {String transactionId, userData}) async {
     Firestore db = Firestore.instance;
-    bool success = true;
+    String message = '';
 
     String targetEmail = userData.targetEmail;
     WriteBatch batch = db.batch();
@@ -51,7 +51,7 @@ class FormUtils {
         // Update operation
         if (!isDatabaseOwner(userData) &&
             !isTransactionOwner(userData, transaction)) {
-          return false;
+          return "Permission Denied: You don't have editing access";
         } else {
           transaction.signature = userData.email;
           batch.updateData(
@@ -75,22 +75,22 @@ class FormUtils {
 
       batch.commit();
     } catch (e) {
-      success = false;
+      message = 'Error updating transaction info! Try again.';
     }
-    return success;
+    return message;
   }
 
   static void deleteTransactionAndUpdateItem(
       callback, transaction, transactionId, Item item, userData) async {
     // Sync newly updated item and delete transaction from db in batch
     Firestore db = Firestore.instance;
-    bool success = true;
+    String message = '';
     String targetEmail = userData.targetEmail;
     WriteBatch batch = db.batch();
 
     if (!isDatabaseOwner(userData) &&
         !isTransactionOwner(userData, transaction)) {
-      callback(false);
+      callback("Permission Denied: You don't have deleting access");
       return;
     }
 
@@ -106,7 +106,7 @@ class FormUtils {
       batch.delete(
           db.collection('$targetEmail-transactions').document(transactionId));
       batch.commit();
-      callback(success);
+      callback(message);
       return;
     }
 
@@ -125,14 +125,13 @@ class FormUtils {
 
       batch.commit();
     } catch (e) {
-      success = false;
+      message = "Error deleting transaction info! Try again." ;
     }
 
-    callback(success);
+    callback(message);
   }
 
-  static genFuzzySuggestionsForItem(
-      String sampleString, List sourceList) {
+  static genFuzzySuggestionsForItem(String sampleString, List sourceList) {
     if (sourceList.isEmpty) {
       return sourceList;
     }
