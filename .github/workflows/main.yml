@@ -1,7 +1,7 @@
 on:
   push:
 
-name: Run Build
+name: Build
 jobs:
   linux:
     name: Android
@@ -38,6 +38,5 @@ jobs:
             app/build/app/outputs/apk/release/app-x86_64-release.apk
             app/build/app/outputs/apk/app_release/app-release.apk
           body_path: app/CHANGELOG.txt
-          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

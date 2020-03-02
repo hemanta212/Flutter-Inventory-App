@@ -1,4 +1,4 @@
-name: Repository Dispatch
+name: Dispatch
 on:
   push:
     tags:

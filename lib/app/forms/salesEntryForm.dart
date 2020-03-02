@@ -343,8 +343,12 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   }
 
   void updateDuePrice() {
-    this.transaction.dueAmount =
-        double.parse(this.duePriceController.text).abs();
+    double amount = 0.0;
+    if (this.duePriceController.text.isNotEmpty) {
+      amount = double.parse(this.duePriceController.text).abs();
+    }
+    this.transaction.dueAmount = amount;
+    debugPrint("Updated the due price to ${this.transaction.dueAmount}");
   }
 
   void updateTransactionDescription() {
@@ -512,8 +516,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
           this.context, "Status", 'Sales updated successfully');
     } else {
       // Failure
-      WindowUtils.showAlertDialog(
-          this.context, 'Failed!', message);
+      WindowUtils.showAlertDialog(this.context, 'Failed!', message);
     }
   }
 

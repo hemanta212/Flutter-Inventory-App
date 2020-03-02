@@ -345,8 +345,11 @@ class _StockEntryFormState extends State<StockEntryForm> {
   }
 
   void updateDuePrice() {
-    this.transaction.dueAmount =
-        double.parse(this.duePriceController.text).abs();
+    double amount = 0.0;
+    if (this.duePriceController.text.isNotEmpty) {
+      amount = double.parse(this.duePriceController.text).abs();
+    }
+    this.transaction.dueAmount = amount;
   }
 
   void updateTransactionDescription() {
