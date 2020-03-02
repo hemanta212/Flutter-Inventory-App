@@ -1,8 +1,8 @@
-name: Dispatch
+name: Dispatch_draft
 on:
   push:
     branches:
-      - master
+      - dev
     tags:
       - 'v*'
 
@@ -17,5 +17,5 @@ jobs:
         with:
           repository: hemanta212/hello_flutter
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
-          event-type: bookkeeping_app-release
+          event-type: bookkeeping_app-draft
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "version": "${{ steps.release.outputs.version }}"}'
