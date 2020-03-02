@@ -1,4 +1,6 @@
-Version 0.9.1
+Version 0.9.2
 
-* Improved permission denied messages.
-* Implemented the Units throughout the app.
+# Book Keeping App
+
+* Migrated to AndroidX
+* Publishing releases publicly from hello world repo
