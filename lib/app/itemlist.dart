@@ -107,13 +107,10 @@ class ItemListState extends State<ItemList> {
                       },
                     ),
                     onHorizontalDragEnd: (DragEndDetails details) {
-                      print("Horizontal velocity is ::${details.velocity}");
-                      print(
-                          "Horizontal Primary velocity is ::${details.primaryVelocity}");
                       if (details.primaryVelocity < 0.0) {
-                        this._initiateTransaction("Sales Entry", item);
-                      } else if (details.primaryVelocity > 0.0) {
                         this._initiateTransaction("Stock Entry", item);
+                      } else if (details.primaryVelocity > 0.0) {
+                        this._initiateTransaction("Sales Entry", item);
                       }
                     });
               },
@@ -289,17 +286,12 @@ class ItemListState extends State<ItemList> {
                         navigateToDetail(item, 'Edit Item', itemId: itemId);
                       },
                     ),
-                    onVerticalDragEnd: (DragEndDetails details) {
-                      // if (details.primaryVelocity < 2){
-                      this._initiateTransaction("Stock Entry", item);
-                      //}
-                    },
                     onHorizontalDragEnd: (DragEndDetails details) {
-                      print(
-                          "Horizontal velocity is ::${details.velocity.toString()}");
-                      print(
-                          "Horizontal Primary velocity is ::${details.primaryVelocity}");
-                      this._initiateTransaction("Sales Entry", item);
+                      if (details.primaryVelocity < 0.0) {
+                        this._initiateTransaction("Stock Entry", item);
+                      } else if (details.primaryVelocity > 0.0) {
+                        this._initiateTransaction("Sales Entry", item);
+                      }
                     });
               }))
     ]));

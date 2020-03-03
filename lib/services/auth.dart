@@ -49,12 +49,13 @@ class AuthService {
           email: email, password: password);
       FirebaseUser user = result.user;
       // create a new document for the user with the uid
-      DocumentSnapshot duplicate =
+      UserData duplicate =
           await CrudHelper().getUserData('email', user.email);
-      if (duplicate?.data ?? false) {
+      if (duplicate != null) {
         print("duplicate email");
         return null;
       }
+
       UserData userData = UserData(
           uid: user.uid,
           targetEmail: user.email,

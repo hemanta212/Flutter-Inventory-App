@@ -1,6 +1,10 @@
-Version 0.9.2
+Version 0.9.35
 
 # Book Keeping App
 
-* Migrated to AndroidX
-* Publishing releases publicly from hello world repo
+Fixes:
+* Fixed swiping in item search
+* Swiping mechanism changed: right swipe for sales and left for stock entry
+* Checking of revoked listen permission at app start.
+* Don't check for form validation when deleting.
+* Empty target field in settings will default to users themself.

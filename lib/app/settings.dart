@@ -5,18 +5,16 @@ import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/services/auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class Setting extends StatefulWidget {
   @override
-  _SettingState createState() => _SettingState();
+  SettingState createState() => SettingState();
 }
 
-class _SettingState extends State<Setting> {
+class SettingState extends State<Setting> {
   final _formKey = GlobalKey<FormState>();
-  String _currentTargetEmail;
 
   static CrudHelper crudHelper;
   UserData userData;
@@ -24,8 +22,7 @@ class _SettingState extends State<Setting> {
 
   Map currentMonthHistory = Map();
   final double _minimumPadding = 5.0;
-
-  _SettingState();
+  TextEditingController targetEmailController = TextEditingController();
 
   @override
   void didChangeDependencies() {
@@ -76,21 +73,29 @@ class _SettingState extends State<Setting> {
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     UserData _userData = snapshot.data;
+                    this.targetEmailController.text =
+                        _userData.targetEmail ?? '';
                     return ListView(children: <Widget>[
                       Form(
                         key: _formKey,
                         child: Column(children: <Widget>[
                           SizedBox(height: 20.0),
                           TextFormField(
-                            initialValue: _userData.targetEmail,
-                            decoration: InputDecoration(
-                              labelText: "Target Email",
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(5.0)),
-                            ),
-                            onChanged: (val) =>
-                                setState(() => _currentTargetEmail = val),
-                          ),
+                              decoration: InputDecoration(
+                                labelText: "Target Email",
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(5.0)),
+                              ),
+                              controller: this.targetEmailController,
+                              validator: (val) {
+                                if (val.isEmpty) {
+                                  setState(() {
+                                    this.targetEmailController.text =
+                                        this.userData.email;
+                                  });
+                                }
+                                return null;
+                              }),
                           SizedBox(height: 10.0),
                           TextFormField(
                               enabled: false,
@@ -170,9 +175,9 @@ class _SettingState extends State<Setting> {
 
   void checkAndSave() async {
     if (_formKey.currentState.validate()) {
-      this.userData.targetEmail =
-          this._currentTargetEmail ?? this.userData.email;
-      if (!await _validateTargetEmail()) {
+      print("currentTargetEmail is ${this.targetEmailController.text}");
+      this.userData.targetEmail = this.targetEmailController.text;
+      if (!await validateTargetEmail(this.userData)) {
         WindowUtils.showAlertDialog(context, "Failed",
             "You don't have access rights to this target email\n${this.userData.targetEmail}");
         return;
@@ -183,16 +188,16 @@ class _SettingState extends State<Setting> {
     }
   }
 
-  Future<bool> _validateTargetEmail() async {
-    if (this.userData.email == this.userData.targetEmail) return true;
+  static Future<bool> validateTargetEmail(userData) async {
+    print("userdata email is ${userData.email} and ${userData.targetEmail}");
+    if (userData.email == userData.targetEmail) return true;
 
-    DocumentSnapshot targetUserSnapshot =
-        await crudHelper.getUserData('email', this.userData.targetEmail);
-    if (targetUserSnapshot?.data?.isEmpty ?? true) {
+    UserData targetUserData =
+        await crudHelper.getUserData('email', userData.targetEmail);
+    if (targetUserData?.roles?.isEmpty ?? true) {
       return false;
     } else {
-      UserData userData = UserData.fromMapObject(targetUserSnapshot.data);
-      if (userData.roles?.containsKey(this.userData.email) ?? false)
+      if (targetUserData.roles.containsKey(userData.email))
         return true;
       else
         return false;
@@ -314,6 +319,8 @@ class _SettingState extends State<Setting> {
                                 }
                                 role = '';
                                 email = '';
+                                setState(() => Navigator.pop(context));
+                              } else {
                                 setState(() => Navigator.pop(context));
                               }
                             }),

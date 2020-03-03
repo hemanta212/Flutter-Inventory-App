@@ -1,10 +1,12 @@
-import 'package:bk_app/models/user.dart';
-import 'package:bk_app/utils/cache.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/authenticate/authenticate.dart';
 import 'package:bk_app/app/itemlist.dart';
+import 'package:bk_app/app/settings.dart';
+import 'package:bk_app/services/crud.dart';
+import 'package:bk_app/models/user.dart';
+import 'package:bk_app/utils/cache.dart';
 
 class Wrapper extends StatelessWidget {
   @override
@@ -20,6 +22,7 @@ class Wrapper extends StatelessWidget {
       return Authenticate();
     } else {
       _initializeCache(startupCache);
+      _checkForTargetPermission(user);
       return ItemList();
     }
   }
@@ -28,5 +31,13 @@ class Wrapper extends StatelessWidget {
     // Loads cache into memory with help of singleton class instance
     await startupCache.itemMap;
     await startupCache.itemTransactionMap;
+  }
+
+  void _checkForTargetPermission(UserData userData) async {
+    bool permitted = await SettingState.validateTargetEmail(userData);
+    if (!permitted) {
+      userData.targetEmail = userData.email;
+      await CrudHelper().updateUserData(userData);
+    }
   }
 }

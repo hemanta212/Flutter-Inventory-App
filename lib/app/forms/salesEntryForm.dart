@@ -522,6 +522,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
 
   void refreshItemTransactionMapCache() async {
     // refresh item transaction map cache since transaction is changed.
+    debugPrint("Refreshing transaction cache");
     await StartupCache(userData: userData, reload: true).itemTransactionMap;
   }
 
