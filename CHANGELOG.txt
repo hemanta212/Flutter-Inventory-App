@@ -1,4 +1,4 @@
-Version 0.9.35
+Version 0.9.36
 
 # Book Keeping App
 
@@ -8,3 +8,4 @@ Fixes:
 * Checking of revoked listen permission at app start.
 * Don't check for form validation when deleting.
 * Empty target field in settings will default to users themself.
+* Fixed transaction profit viewer not updating properly

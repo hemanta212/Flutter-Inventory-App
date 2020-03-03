@@ -184,7 +184,8 @@ class TransactionListState extends State<TransactionList> {
     Map itemTransactionMap = await StartupCache().itemTransactionMap;
     Map salesTransactions = Map();
 
-    // transactions of type = 0 means outgoing(sales) and 1 means incoming(stockentry)
+    // transactions of type = 0 means outgoing(sales)
+    //1 means incoming(stockentry)
     itemTransactionMap.forEach((transactionId, value) {
       debugPrint("got value $value");
       if (value['type'] == 0) {
@@ -306,6 +307,7 @@ class TransactionListState extends State<TransactionList> {
 
     if (result == true) {
       updateListView();
+      await StartupCache(userData: userData, reload: true).itemTransactionMap;
     }
   }
 

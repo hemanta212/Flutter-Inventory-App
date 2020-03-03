@@ -499,6 +499,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
             this.transaction, this.transactionId, item, userData);
+
+        refreshItemTransactionMapCache();
       });
     }
   }

@@ -478,6 +478,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
           onPressed: (buildContext) {
         FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
             this.transaction, this.transactionId, item, userData);
+
+        refreshItemTransactionMapCache();
       });
     }
   }
