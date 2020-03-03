@@ -96,7 +96,6 @@ class ItemTransaction {
     return transactions;
   }
 
-  // Convert a note obj to map obj
   Map<String, dynamic> toMap() {
     var map = Map<String, dynamic>();
 
@@ -114,7 +113,6 @@ class ItemTransaction {
     return map;
   }
 
-  // Extract item obj from map obj
   ItemTransaction.fromMapObject(Map<String, dynamic> map) {
     this._id = map['id'];
     this._type = map['type'];

@@ -13,6 +13,7 @@ import 'package:bk_app/utils/form.dart';
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/utils/loading.dart';
+import 'package:bk_app/utils/utils.dart';
 import 'package:bk_app/services/crud.dart';
 
 class TransactionList extends StatefulWidget {
@@ -131,9 +132,7 @@ class TransactionListState extends State<TransactionList> {
                     title:
                         getDescription(context, transaction, this.itemMapCache),
                     onTap: () {
-                      String transactionId = transaction.id;
                       navigateToDetail(context, transaction, 'Edit Item',
-                          transactionId: transactionId,
                           updateListView: this._updateListView);
                     },
                   ));
@@ -167,9 +166,7 @@ class TransactionListState extends State<TransactionList> {
                 title: getDescription(context, transaction, this.itemMapCache),
                 subtitle: Text(transaction.signature),
                 onTap: () {
-                  String transactionId = transaction.id;
                   navigateToDetail(context, transaction, 'Edit Item',
-                      transactionId: transactionId,
                       updateListView: this._updateListView);
                 },
               ));
@@ -181,7 +178,7 @@ class TransactionListState extends State<TransactionList> {
   }
 
   void _showTransactionProfit() async {
-    Map itemTransactionMap = await StartupCache().itemTransactionMap;
+    Map itemTransactionMap = await AppUtils.getTransactionsForToday(context);
     Map salesTransactions = Map();
 
     // transactions of type = 0 means outgoing(sales)
@@ -284,20 +281,17 @@ class TransactionListState extends State<TransactionList> {
 
   static void navigateToDetail(
       BuildContext context, ItemTransaction transaction, String name,
-      {String transactionId, updateListView}) async {
+      {updateListView}) async {
     var form;
     if (transaction.type == 0) {
-      form = SalesEntryForm(
-          title: name,
-          transaction: transaction,
-          forEdit: true,
-          transactionId: transactionId);
+      form =
+          SalesEntryForm(title: name, transaction: transaction, forEdit: true);
     } else {
       form = StockEntryForm(
-          title: name,
-          transaction: transaction,
-          forEdit: true,
-          transactionId: transactionId);
+        title: name,
+        transaction: transaction,
+        forEdit: true,
+      );
     }
 
     bool result =
@@ -307,7 +301,6 @@ class TransactionListState extends State<TransactionList> {
 
     if (result == true) {
       updateListView();
-      await StartupCache(userData: userData, reload: true).itemTransactionMap;
     }
   }
 

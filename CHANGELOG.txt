@@ -1,11 +1,10 @@
-Version 0.9.36
+Version 0.9.37
 
 # Book Keeping App
 
 Fixes:
-* Fixed swiping in item search
-* Swiping mechanism changed: right swipe for sales and left for stock entry
-* Checking of revoked listen permission at app start.
-* Don't check for form validation when deleting.
-* Empty target field in settings will default to users themself.
-* Fixed transaction profit viewer not updating properly
+* Removed itemTransactionCache completely and lazy loading in profit viewer
+* The orphan transaction was broken, so fixed it.
+* The permission checker introduced in v0.9.36 had some problems, fixed it
+* Fixed version number in apk builds (it showed version 1.0.0) previously
+* Fixed app exiting when pressed back from forms from itemList

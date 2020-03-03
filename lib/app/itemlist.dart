@@ -102,8 +102,7 @@ class ItemListState extends State<ItemList> {
                         this._showItemInfoDialog(item);
                       },
                       onLongPress: () {
-                        String itemId = item.id;
-                        navigateToDetail(item, 'Edit Item', itemId: itemId);
+                        navigateToDetail(item, 'Edit Item');
                       },
                     ),
                     onHorizontalDragEnd: (DragEndDetails details) {
@@ -171,11 +170,10 @@ class ItemListState extends State<ItemList> {
         });
   }
 
-  void navigateToDetail(Item item, String name, {itemId}) async {
+  void navigateToDetail(Item item, String name) async {
     bool result =
         await Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return ItemEntryForm(
-          title: name, item: item, itemId: itemId, forEdit: true);
+      return ItemEntryForm(title: name, item: item, forEdit: true);
     }));
 
     if (result == true) {
@@ -282,8 +280,7 @@ class ItemListState extends State<ItemList> {
                         this._showItemInfoDialog(item);
                       },
                       onLongPress: () {
-                        String itemId = item.id;
-                        navigateToDetail(item, 'Edit Item', itemId: itemId);
+                        navigateToDetail(item, 'Edit Item');
                       },
                     ),
                     onHorizontalDragEnd: (DragEndDetails details) {

@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import 'package:bk_app/utils/window.dart';
 import 'package:bk_app/utils/form.dart';
-import 'package:bk_app/utils/cache.dart';
+import 'package:bk_app/utils/utils.dart';
 
 class SalesOverview {
   static Map salesTransactionInfo;
@@ -157,8 +157,8 @@ class SalesOverview {
     List<String> dates = salesTransactionInfo['Date'];
     String transactionDate = dates[index];
     Map transaction;
-    Map itemTransactionMapCache = await StartupCache().itemTransactionMap;
-    itemTransactionMapCache.forEach((key, value) {
+    Map itemTransactionMap = await AppUtils.getTransactionsForToday(context);
+    itemTransactionMap.forEach((key, value) {
       if (transactionDate == value['date']) {
         transaction = value;
       }

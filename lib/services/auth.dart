@@ -1,6 +1,5 @@
 import 'package:bk_app/models/user.dart';
 import 'package:bk_app/services/crud.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {

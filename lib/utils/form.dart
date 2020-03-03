@@ -2,6 +2,7 @@ import 'package:bk_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:bk_app/models/item.dart';
+import 'package:bk_app/models/transaction.dart';
 
 class FormUtils {
   static String fmtToIntIfPossible(double value) {
@@ -25,13 +26,14 @@ class FormUtils {
     return userData.targetEmail == userData.email;
   }
 
-  static bool isTransactionOwner(UserData userData, transaction) {
+  static bool isTransactionOwner(
+      UserData userData, ItemTransaction transaction) {
     return transaction.signature == userData.email;
   }
 
   static Future<String> saveTransactionAndUpdateItem(
-      transaction, item, String itemId,
-      {String transactionId, userData}) async {
+      ItemTransaction transaction, Item item,
+      {UserData userData}) async {
     Firestore db = Firestore.instance;
     String message = '';
 
@@ -39,7 +41,7 @@ class FormUtils {
     WriteBatch batch = db.batch();
 
     try {
-      if (transactionId == null) {
+      if (transaction.id == null) {
         // Insert operation
         transaction.createdAt = DateTime.now().millisecondsSinceEpoch;
         transaction.date = DateFormat.yMMMd().add_jms().format(DateTime.now());
@@ -57,7 +59,7 @@ class FormUtils {
           batch.updateData(
               db
                   .collection('$targetEmail-transactions')
-                  .document(transactionId),
+                  .document(transaction.id),
               transaction.toMap());
         }
       }
@@ -69,8 +71,8 @@ class FormUtils {
         // updates the transactins items is not changed and only transaction change with the sign of them
         // Later when owner accepts it (by just resaving) this condition is passed and item is changed
         print("db owner so updating item $item");
-        batch.updateData(
-            db.collection('$targetEmail-items').document(itemId), item.toMap());
+        batch.updateData(db.collection('$targetEmail-items').document(item.id),
+            item.toMap());
       }
 
       batch.commit();
@@ -80,8 +82,8 @@ class FormUtils {
     return message;
   }
 
-  static void deleteTransactionAndUpdateItem(
-      callback, transaction, transactionId, Item item, userData) async {
+  static void deleteTransactionAndUpdateItem(Function callback,
+      ItemTransaction transaction, Item item, UserData userData) async {
     // Sync newly updated item and delete transaction from db in batch
     Firestore db = Firestore.instance;
     String message = '';
@@ -104,7 +106,7 @@ class FormUtils {
       // draft and item associated to them should not change until owner verfies/owns it.
 
       batch.delete(
-          db.collection('$targetEmail-transactions').document(transactionId));
+          db.collection('$targetEmail-transactions').document(transaction.id));
       batch.commit();
       callback(message);
       return;
@@ -119,13 +121,13 @@ class FormUtils {
     }
     try {
       batch.delete(
-          db.collection('$targetEmail-transactions').document(transactionId));
+          db.collection('$targetEmail-transactions').document(transaction.id));
       batch.updateData(
           db.collection('$targetEmail-items').document(item.id), item.toMap());
 
       batch.commit();
     } catch (e) {
-      message = "Error deleting transaction info! Try again." ;
+      message = "Error deleting transaction info! Try again.";
     }
 
     callback(message);

@@ -42,7 +42,7 @@ class WindowUtils {
     }));
   }
 
-  static void moveToLastScreen(BuildContext context, {bool modified = false}) {
+  static moveToLastScreen(BuildContext context, {bool modified = false}) {
     debugPrint("I am called. Going back screen");
     Navigator.pop(context, modified);
   }

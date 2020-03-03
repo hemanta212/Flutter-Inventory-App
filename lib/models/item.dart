@@ -18,7 +18,6 @@ class Item {
     this._costPrice,
     this._markedPrice,
     this._description,
-    // NOTE : various item custom units
   ]);
 
   String get id => _id;
@@ -165,7 +164,6 @@ class Item {
     return items;
   }
 
-  // Convert a note obj to map obj
   Map<String, dynamic> toMap() {
     var map = Map<String, dynamic>();
 
@@ -182,7 +180,6 @@ class Item {
     return map;
   }
 
-  // Extract item obj from map obj
   Item.fromMapObject(Map<String, dynamic> map) {
     this._id = map['id'];
     this._description = map['description'];

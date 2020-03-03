@@ -28,9 +28,7 @@ class Wrapper extends StatelessWidget {
   }
 
   void _initializeCache(startupCache) async {
-    // Loads cache into memory with help of singleton class instance
     await startupCache.itemMap;
-    await startupCache.itemTransactionMap;
   }
 
   void _checkForTargetPermission(UserData userData) async {

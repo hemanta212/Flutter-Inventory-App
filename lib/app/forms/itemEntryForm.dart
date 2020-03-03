@@ -14,13 +14,12 @@ class ItemEntryForm extends StatefulWidget {
   final String title;
   final Item item;
   final bool forEdit;
-  final String itemId;
 
-  ItemEntryForm({this.item, this.title, this.itemId, this.forEdit});
+  ItemEntryForm({this.item, this.title, this.forEdit});
 
   @override
   State<StatefulWidget> createState() {
-    return _ItemEntryFormState(this.item, this.itemId, this.title);
+    return _ItemEntryFormState(this.item, this.title);
   }
 }
 
@@ -33,9 +32,8 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   String title;
   Item item;
-  String itemId;
 
-  _ItemEntryFormState(this.item, this.itemId, this.title);
+  _ItemEntryFormState(this.item, this.title);
 
   List<String> _forms = ['Sales Entry', 'Stock Entry', 'Item Entry'];
   String formName;
@@ -72,7 +70,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       this.item = Item('');
     }
 
-    if (this.itemId != null) {
+    if (this.item.id != null) {
       this.itemNameController.text = '${item.name}';
       this.itemNickNameController.text = '${item.nickName ?? ''}';
       this.markedPriceController.text = this.item.markedPrice;
@@ -241,7 +239,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
     return WillPopScope(
       onWillPop: () {
         // When user presses the back button write some code to control
-        WindowUtils.moveToLastScreen(context);
+        return WindowUtils.moveToLastScreen(context);
       },
       child: CustomScaffold.setScaffold(context, title, buildForm),
     );
@@ -253,7 +251,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
     Future<Item> duplicate = crudHelper.getItem('name', givenName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
-      if (value != null && this.itemId != value.id) {
+      if (value != null && this.item.id != value.id) {
         this.stringUnderName = 'Name already registered';
         this.item.name = '';
       } else {
@@ -276,7 +274,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
     Future<Item> duplicate = crudHelper.getItem('nick_name', givenNickName);
     duplicate.then((value) {
       // Don't show the error while updating the item.
-      if (value != null && this.itemId != value.id) {
+      if (value != null && this.item.id != value.id) {
         this.stringUnderNickName = 'Nick name already registered';
       } else {
         this.stringUnderNickName = '';
@@ -314,11 +312,11 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
     }
 
     try {
-      if (this.itemId != null) {
+      if (this.item.id != null) {
         // Case 1: Update operation
         debugPrint("Updated item");
         this.item.used += 1;
-        crudHelper.updateItem(this.itemId, this.item);
+        crudHelper.updateItem(this.item);
       } else {
         // Case 2: Insert operation
         crudHelper.addItem(this.item);
@@ -343,7 +341,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   // Delete item data
   void _delete() async {
-    if (this.itemId == null) {
+    if (this.item.id == null) {
       // Case 1: Abandon new item creation
       if (this.widget.forEdit ?? false) {
         WindowUtils.moveToLastScreen(context, modified: true);
@@ -370,7 +368,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       return;
     }
 
-    crudHelper.deleteItem(this.itemId);
+    crudHelper.deleteItem(this.item.id);
 
     if (this.widget.forEdit ?? false) {
       WindowUtils.moveToLastScreen(context, modified: true);

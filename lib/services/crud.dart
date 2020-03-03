@@ -28,12 +28,12 @@ class CrudHelper {
     }
   }
 
-  Future<int> updateItem(String itemId, Item newItem) async {
+  Future<int> updateItem(Item newItem) async {
     String targetEmail = this.userData.targetEmail;
     if (targetEmail == this.userData.email) {
       await Firestore.instance
           .collection('$targetEmail-items')
-          .document(itemId)
+          .document(newItem.id)
           .updateData(newItem.toMap())
           .catchError((e) {
         print(e);
@@ -104,7 +104,7 @@ class CrudHelper {
         .catchError((e) {
       return null;
     });
-    if (itemSnapshot.data.isNotEmpty) {
+    if (itemSnapshot.data?.isNotEmpty ?? false) {
       Item item = Item.fromMapObject(itemSnapshot.data);
       item.id = itemSnapshot.documentID;
       return item;

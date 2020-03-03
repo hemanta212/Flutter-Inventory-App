@@ -120,10 +120,8 @@ class DueTransactionState extends State<DueTransaction> {
                     title: TransactionListState.getDescription(
                         context, transaction, this.itemMapCache),
                     onTap: () {
-                      String transactionId = transaction.id;
                       TransactionListState.navigateToDetail(
                           context, transaction, 'Edit Item',
-                          transactionId: transactionId,
                           updateListView: this._updateListView);
                     },
                   ));

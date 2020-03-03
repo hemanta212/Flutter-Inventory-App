@@ -193,7 +193,7 @@ class SettingState extends State<Setting> {
     if (userData.email == userData.targetEmail) return true;
 
     UserData targetUserData =
-        await crudHelper.getUserData('email', userData.targetEmail);
+        await CrudHelper().getUserData('email', userData.targetEmail);
     if (targetUserData?.roles?.isEmpty ?? true) {
       return false;
     } else {

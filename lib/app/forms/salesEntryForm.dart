@@ -1,20 +1,19 @@
-import 'package:bk_app/models/user.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:bk_app/app/wrapper.dart';
-import 'package:bk_app/utils/window.dart';
-import 'package:bk_app/utils/scaffold.dart';
-import 'package:bk_app/services/crud.dart';
-import 'package:bk_app/utils/form.dart';
-import 'package:bk_app/utils/cache.dart';
-import 'package:bk_app/utils/loading.dart';
 import 'package:bk_app/models/item.dart';
 import 'package:bk_app/models/transaction.dart';
-import 'package:provider/provider.dart';
+import 'package:bk_app/models/user.dart';
+import 'package:bk_app/services/crud.dart';
+import 'package:bk_app/utils/form.dart';
+import 'package:bk_app/utils/window.dart';
+import 'package:bk_app/utils/cache.dart';
+import 'package:bk_app/utils/scaffold.dart';
+import 'package:bk_app/utils/loading.dart';
 
 class SalesEntryForm extends StatefulWidget {
   final String title;
-  final String transactionId;
   final ItemTransaction transaction;
   final bool forEdit;
   // When an item is right swiped from itemList a quick sales form is presented
@@ -22,26 +21,19 @@ class SalesEntryForm extends StatefulWidget {
   // the name of item to this form
   final Item swipeData;
 
-  SalesEntryForm(
-      {this.title,
-      this.transaction,
-      this.transactionId,
-      this.forEdit,
-      this.swipeData});
+  SalesEntryForm({this.title, this.transaction, this.forEdit, this.swipeData});
 
   @override
   State<StatefulWidget> createState() {
-    return _SalesEntryFormState(
-        this.title, this.transactionId, this.transaction);
+    return _SalesEntryFormState(this.title, this.transaction);
   }
 }
 
 class _SalesEntryFormState extends State<SalesEntryForm> {
   // Variables
   String title;
-  String transactionId;
   ItemTransaction transaction;
-  _SalesEntryFormState(this.title, this.transactionId, this.transaction);
+  _SalesEntryFormState(this.title, this.transaction);
 
   var _formKey = GlobalKey<FormState>();
   final double _minimumPadding = 5.0;
@@ -99,7 +91,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       }
     }
 
-    if (this.transactionId != null) {
+    if (this.transaction.id != null) {
       debugPrint("Getting transaction obj");
       this.itemNumberController.text =
           FormUtils.fmtToIntIfPossible(this.transaction.items);
@@ -111,7 +103,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       this.duePriceController.text =
           FormUtils.fmtToIntIfPossible(this.transaction.dueAmount);
       if (this.descriptionController.text.isNotEmpty ||
-          this.duePriceController.text.isNotEmpty) {
+          (this.transaction.dueAmount ?? 0.0) != 0.0) {
         setState(() {
           this.enableAdvancedFields = true;
         });
@@ -329,7 +321,12 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     if (userData == null) {
       return Wrapper();
     }
-    return CustomScaffold.setScaffold(context, title, buildForm);
+    return WillPopScope(
+        onWillPop: () {
+          // When user presses the back button write some code to control
+          return WindowUtils.moveToLastScreen(context);
+        },
+        child: CustomScaffold.setScaffold(context, title, buildForm));
   }
 
   void updateSellingPrice() {
@@ -443,7 +440,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
         double.parse(this.itemNumberController.text).abs() * unitMultiple;
 
     // Additional checks.
-    if ((this.transactionId == null && this.transaction.itemId != itemId) ||
+    if ((this.transaction.id == null && this.transaction.itemId != itemId) ||
         _beingApproved()) {
       // Case insert
       if (item.totalStock < items) {
@@ -471,8 +468,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     this.transaction.items = items;
 
     String message = await FormUtils.saveTransactionAndUpdateItem(
-        this.transaction, item, itemId,
-        transactionId: this.transactionId, userData: userData);
+        this.transaction, item,
+        userData: userData);
 
     this.saveCallback(message);
   }
@@ -484,7 +481,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
   }
 
   void _delete() async {
-    if (this.transactionId == null) {
+    if (this.transaction.id == null) {
       // Case 1: Abandon new item creation
       this.clearFieldsAndTransaction();
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
@@ -497,10 +494,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       WindowUtils.showAlertDialog(context, "Delete?",
           "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
-        FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
-            this.transaction, this.transactionId, item, userData);
-
-        refreshItemTransactionMapCache();
+        FormUtils.deleteTransactionAndUpdateItem(
+            this.saveCallback, this.transaction, item, userData);
       });
     }
   }
@@ -513,19 +508,12 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       }
 
       // Success
-      refreshItemTransactionMapCache();
       WindowUtils.showAlertDialog(
           this.context, "Status", 'Sales updated successfully');
     } else {
       // Failure
       WindowUtils.showAlertDialog(this.context, 'Failed!', message);
     }
-  }
-
-  void refreshItemTransactionMapCache() async {
-    // refresh item transaction map cache since transaction is changed.
-    debugPrint("Refreshing transaction cache");
-    await StartupCache(userData: userData, reload: true).itemTransactionMap;
   }
 
   void _initializeItemNamesAndNicknamesMapCache() async {

@@ -15,28 +15,20 @@ class StockEntryForm extends StatefulWidget {
   final String title;
   final ItemTransaction transaction;
   final bool forEdit;
-  final String transactionId;
   final Item swipeData;
 
-  StockEntryForm(
-      {this.transaction,
-      this.title,
-      this.transactionId,
-      this.forEdit,
-      this.swipeData});
+  StockEntryForm({this.transaction, this.title, this.forEdit, this.swipeData});
 
   @override
   State<StatefulWidget> createState() {
-    return _StockEntryFormState(
-        this.title, this.transactionId, this.transaction);
+    return _StockEntryFormState(this.title, this.transaction);
   }
 }
 
 class _StockEntryFormState extends State<StockEntryForm> {
   String title;
-  String transactionId;
   ItemTransaction transaction;
-  _StockEntryFormState(this.title, this.transactionId, this.transaction);
+  _StockEntryFormState(this.title, this.transaction);
 
   // Variables
   var _formKey = GlobalKey<FormState>();
@@ -94,7 +86,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
       }
     }
 
-    if (this.transactionId != null) {
+    if (this.transaction.id != null) {
       debugPrint("Getting transanction obj");
       this.itemNumberController.text =
           FormUtils.fmtToIntIfPossible(this.transaction.items);
@@ -319,7 +311,12 @@ class _StockEntryFormState extends State<StockEntryForm> {
     if (userData == null) {
       return Wrapper();
     }
-    return CustomScaffold.setScaffold(context, this.title, buildForm);
+    return WillPopScope(
+        onWillPop: () {
+          // When user presses the back button write some code to control
+          return WindowUtils.moveToLastScreen(context);
+        },
+        child: CustomScaffold.setScaffold(context, this.title, buildForm));
   }
 
   void updateItemName() {
@@ -414,7 +411,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
         double.parse(this.itemNumberController.text).abs() * unitMultiple;
     double totalCostPrice = double.parse(this.costPriceController.text).abs();
 
-    if (this.transactionId != null &&
+    if (this.transaction.id != null &&
         this.transaction.itemId == itemId &&
         !_beingApproved()) {
       // Condition 1st:
@@ -448,8 +445,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
     this.transaction.amount = totalCostPrice;
 
     String message = await FormUtils.saveTransactionAndUpdateItem(
-        this.transaction, item, itemId,
-        transactionId: this.transactionId, userData: userData);
+        this.transaction, item,
+        userData: userData);
 
     this.saveCallback(message);
   }
@@ -462,7 +459,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
 
   // Delete item data
   void _delete() async {
-    if (this.transactionId == null) {
+    if (this.transaction.id == null) {
       // Case 1: Abandon new item creation
       this.clearFieldsAndTransaction();
       WindowUtils.showAlertDialog(context, "Status", 'Item not created');
@@ -476,10 +473,8 @@ class _StockEntryFormState extends State<StockEntryForm> {
       WindowUtils.showAlertDialog(context, "Delete?",
           "This action is very dangerous and you may lose vital information. Delete?",
           onPressed: (buildContext) {
-        FormUtils.deleteTransactionAndUpdateItem(this.saveCallback,
-            this.transaction, this.transactionId, item, userData);
-
-        refreshItemTransactionMapCache();
+        FormUtils.deleteTransactionAndUpdateItem(
+            this.saveCallback, this.transaction, item, userData);
       });
     }
   }
@@ -492,18 +487,12 @@ class _StockEntryFormState extends State<StockEntryForm> {
       }
 
       // Success
-      refreshItemTransactionMapCache();
       WindowUtils.showAlertDialog(
           this.context, "Status", 'Stock updated successfully');
     } else {
       // Failure
       WindowUtils.showAlertDialog(this.context, 'Failed!', message);
     }
-  }
-
-  void refreshItemTransactionMapCache() async {
-    // refresh item transaction map cache since transaction is changed.
-    await StartupCache(userData: userData, reload: true).itemTransactionMap;
   }
 
   void _initializeItemNamesAndNicknamesMapCache() async {
