@@ -1,10 +1,8 @@
 name: Dispatch_draft
 on:
   push:
-    branches:
-      - dev
     tags:
-      - 'v*'
+      - '0*'
 
 jobs:
   linux:

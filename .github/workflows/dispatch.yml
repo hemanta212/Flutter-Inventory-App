@@ -1,8 +1,6 @@
 name: Dispatch
 on:
   push:
-    branches:
-      - master
     tags:
       - 'v*'
 
