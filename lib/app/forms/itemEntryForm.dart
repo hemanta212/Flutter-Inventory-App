@@ -74,12 +74,11 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
       this.itemNameController.text = '${item.name}';
       this.itemNickNameController.text = '${item.nickName ?? ''}';
       this.markedPriceController.text = this.item.markedPrice;
-      if (this.item.totalStock != 0) {
+      if (this.item.totalStock != 0 && (userData.checkStock ?? true)) {
         this.totalStockController.text =
             FormUtils.fmtToIntIfPossible(this.item.totalStock);
       }
       this.descriptionController.text = this.item.description ?? '';
-      // this.units
     }
   }
 

@@ -425,23 +425,27 @@ class _StockEntryFormState extends State<StockEntryForm> {
       // Update case.
       if (item.lastStockEntry == this.transaction.date) {
         // For latest transaction
-        item.modifyLatestStockEntry(this.transaction, items, totalCostPrice);
+        if (userData.checkStock ?? true) {
+          item.modifyLatestStockEntry(this.transaction, items, totalCostPrice);
+        } else {
+          item.costPrice = totalCostPrice / items;
+        }
       }
     } else {
       // Insert case
-      var newCpAndTotalStock =
-          item.getNewCostPriceAndStock(totalCostPrice, items);
-      item.costPrice = newCpAndTotalStock[0];
-      item.totalStock = newCpAndTotalStock[1];
-
-      // Modify the previous item if transaction is being transfered
-      if (this.transaction.itemId != itemId) {}
+      if (userData.checkStock ?? true) {
+        var newCpAndTotalStock =
+            item.getNewCostPriceAndStock(totalCostPrice, items);
+        item.costPrice = newCpAndTotalStock[0];
+        item.totalStock = newCpAndTotalStock[1];
+      } else {
+        item.costPrice = totalCostPrice / items;
+      }
     }
 
     this.transaction.itemId = itemId;
     this.transaction.items = items;
     item.markedPrice = this.markedPriceController.text;
-
     this.transaction.amount = totalCostPrice;
 
     String message = await FormUtils.saveTransactionAndUpdateItem(

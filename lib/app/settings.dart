@@ -22,6 +22,7 @@ class SettingState extends State<Setting> {
 
   Map currentMonthHistory = Map();
   final double _minimumPadding = 5.0;
+  bool checkStock;
   TextEditingController targetEmailController = TextEditingController();
 
   @override
@@ -75,10 +76,16 @@ class SettingState extends State<Setting> {
                     UserData _userData = snapshot.data;
                     this.targetEmailController.text =
                         _userData.targetEmail ?? '';
+                    this.checkStock = _userData.checkStock ?? true;
                     return ListView(children: <Widget>[
                       Form(
                         key: _formKey,
                         child: Column(children: <Widget>[
+                          Container(
+                            padding: EdgeInsets.all(10.0),
+                            child: Text('Account settings',
+                                style: localTheme.textTheme.title),
+                          ),
                           SizedBox(height: 20.0),
                           TextFormField(
                               decoration: InputDecoration(
@@ -125,6 +132,7 @@ class SettingState extends State<Setting> {
                                       print("sending verification");
                                     })
                               ])),
+
                           SizedBox(height: 20.0),
                           Row(children: <Widget>[
                             Expanded(
@@ -148,6 +156,20 @@ class SettingState extends State<Setting> {
                           this.showRolesMapping(this.userData),
                           SizedBox(height: 20.0),
 
+                          Container(
+                            padding: EdgeInsets.all(10.0),
+                            child: Text('App settings',
+                                style: localTheme.textTheme.title),
+                          ),
+                          Row(children: <Widget>[
+                            Text("Enforce stock checking",
+                                style: localTheme.textTheme.subhead),
+                            Checkbox(
+                                value: this.checkStock,
+                                onChanged: (bool val) {
+                                  setState(() => this.checkStock = val);
+                                }),
+                          ]),
                           // save
                           Padding(
                               padding: EdgeInsets.only(
@@ -177,6 +199,7 @@ class SettingState extends State<Setting> {
     if (_formKey.currentState.validate()) {
       print("currentTargetEmail is ${this.targetEmailController.text}");
       this.userData.targetEmail = this.targetEmailController.text;
+      this.userData.checkStock = this.checkStock;
       if (!await validateTargetEmail(this.userData)) {
         WindowUtils.showAlertDialog(context, "Failed",
             "You don't have access rights to this target email\n${this.userData.targetEmail}");

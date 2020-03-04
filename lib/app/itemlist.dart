@@ -153,13 +153,15 @@ class ItemListState extends State<ItemList> {
                               FormUtils.getShortDouble(item.costPrice ?? 0.0))),
                         ],
                       ),
-                      Row(
-                        children: <Widget>[
-                          WindowUtils.getCard("Total Stocks"),
-                          WindowUtils.getCard(
-                              FormUtils.fmtToIntIfPossible(item.totalStock)),
-                        ],
-                      ),
+                      Visibility(
+                          visible: userData.checkStock ?? true,
+                          child: Row(
+                            children: <Widget>[
+                              WindowUtils.getCard("Total Stocks"),
+                              WindowUtils.getCard(FormUtils.fmtToIntIfPossible(
+                                  item.totalStock)),
+                            ],
+                          )),
                       SizedBox(height: 16.0),
                       Text("${item.description ?? ''}",
                           style: itemInfoTheme.textTheme.body1),

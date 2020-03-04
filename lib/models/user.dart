@@ -5,6 +5,7 @@ class UserData {
   bool verified;
   String targetEmail;
   Map roles;
+  bool checkStock;
   UserData({this.uid, this.email, this.targetEmail, this.verified, this.roles});
 
   Map<String, dynamic> toMap() {
@@ -14,6 +15,7 @@ class UserData {
     map['uid'] = this.uid;
     map['verified'] = this.verified;
     map['roles'] = this.roles;
+    map['checkStock'] = this.checkStock;
     return map;
   }
 
@@ -23,5 +25,6 @@ class UserData {
     this.email = map['email'];
     this.targetEmail = map['targetEmail'];
     this.roles = map['roles'];
+    this.checkStock = map['checkStock'];
   }
 }

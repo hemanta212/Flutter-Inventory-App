@@ -443,7 +443,7 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
     if ((this.transaction.id == null && this.transaction.itemId != itemId) ||
         _beingApproved()) {
       // Case insert
-      if (item.totalStock < items) {
+      if ((userData.checkStock ?? true) && item.totalStock < items) {
         _alertFail("Empty stock. Cannot sell.");
         return;
       }
@@ -456,7 +456,8 @@ class _SalesEntryFormState extends State<SalesEntryForm> {
       debugPrint(
           "updating transaction and this is current stock ${item.totalStock} of ${item.name}");
       double netAddition = items - this.transaction.items;
-      if (item.totalStock < netAddition) {
+
+      if ((userData.checkStock ?? true) && item.totalStock < netAddition) {
         _alertFail("Empty or insufficient stock.\nCannot sell.");
         return;
       } else {

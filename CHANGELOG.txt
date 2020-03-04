@@ -1,10 +1,10 @@
-Version 0.9.37
+Version 0.9.4
 
 # Book Keeping App
 
-Fixes:
-* Removed itemTransactionCache completely and lazy loading in profit viewer
-* The orphan transaction was broken, so fixed it.
-* The permission checker introduced in v0.9.36 had some problems, fixed it
-* Fixed version number in apk builds (it showed version 1.0.0) previously
-* Fixed app exiting when pressed back from forms from itemList
+Features:
+* Adds new setting for disabling strict totalStock check.
+  - The new check box in setting allows users to loosen the check on the stocks
+  - Let them just use the app for recording the transactions only. 
+  - CP wont be correct and will depend upon latest transaction regardless of the old stock.
+  - It will give less accurate profit picture but will enable use of app without much investment of counting existing items
