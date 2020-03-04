@@ -191,7 +191,7 @@ class _StockEntryFormState extends State<StockEntryForm> {
                               if (value == '0.0' ||
                                   value == '0' ||
                                   value.isEmpty) {
-                                return '';
+                                return 'Quantity is zero or empty';
                               } else {
                                 return null;
                               }

@@ -8,3 +8,6 @@ Features:
   - Let them just use the app for recording the transactions only. 
   - CP wont be correct and will depend upon latest transaction regardless of the old stock.
   - It will give less accurate profit picture but will enable use of app without much investment of counting existing items
+
+* When strict checking of totalStock is disabled. It is required to give the costprice & markedPrice of item while registering. 
+   - A new cp & mp field will be added in itemEntryForm but only visible when aforementioned setting is applied.

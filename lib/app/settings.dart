@@ -31,6 +31,7 @@ class SettingState extends State<Setting> {
     this.userData = Provider.of<UserData>(context);
     if (this.userData != null) {
       crudHelper = CrudHelper(userData: this.userData);
+      this.checkStock = this.userData.checkStock ?? true;
     }
   }
 
@@ -76,7 +77,6 @@ class SettingState extends State<Setting> {
                     UserData _userData = snapshot.data;
                     this.targetEmailController.text =
                         _userData.targetEmail ?? '';
-                    this.checkStock = _userData.checkStock ?? true;
                     return ListView(children: <Widget>[
                       Form(
                         key: _formKey,
@@ -153,7 +153,7 @@ class SettingState extends State<Setting> {
                                   });
                                 }),
                           ]),
-                          this.showRolesMapping(this.userData),
+                          this.showRolesMapping(_userData),
                           SizedBox(height: 20.0),
 
                           Container(
@@ -170,6 +170,7 @@ class SettingState extends State<Setting> {
                                   setState(() => this.checkStock = val);
                                 }),
                           ]),
+
                           // save
                           Padding(
                               padding: EdgeInsets.only(

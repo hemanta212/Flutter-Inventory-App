@@ -47,6 +47,7 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
   TextEditingController markedPriceController = TextEditingController();
   TextEditingController totalStockController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
+  TextEditingController costPriceController = TextEditingController();
 
   @override
   void initState() {
@@ -149,18 +150,19 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
                     // Marked Price of item
                     Visibility(
-                        visible: this.item.markedPrice?.isNotEmpty ??
-                            false, // defaults to false if MP is null
+                        visible: (this.item.id != null) ||
+                            !(userData.checkStock ?? true),
                         child: WindowUtils.genTextField(
                           labelText: "Marked price",
                           hintText: "Expected selling price",
                           textStyle: textStyle,
                           controller: this.markedPriceController,
+                          validator: (val, labelText) {},
                           keyboardType: TextInputType.number,
                           onChanged: this.updateMarkedPrice,
                         )),
 
-                    // Marked Price of item
+                    // Total stock
                     Visibility(
                         visible: this.totalStockController.text.isNotEmpty,
                         child: WindowUtils.genTextField(
@@ -169,6 +171,18 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
                           controller: this.totalStockController,
                           enabled: false,
                           onChanged: () {},
+                        )),
+
+                    // Cost Price of item
+                    Visibility(
+                        visible: !(userData.checkStock ?? true) &&
+                            (this.item.id == null),
+                        child: WindowUtils.genTextField(
+                          labelText: "Cost price",
+                          textStyle: textStyle,
+                          keyboardType: TextInputType.number,
+                          controller: this.costPriceController,
+                          onChanged: this.updateCostPrice,
                         )),
 
                     // Item Description
@@ -262,6 +276,10 @@ class _ItemEntryFormState extends State<ItemEntryForm> {
 
   void updateMarkedPrice() {
     this.item.markedPrice = this.markedPriceController.text;
+  }
+
+  void updateCostPrice() {
+    this.item.costPrice = double.parse(this.costPriceController.text).abs();
   }
 
   void updateItemDescription() {
