@@ -1,13 +1,9 @@
-Version 0.9.4
+Version 0.9.41
 
 # Book Keeping App
 
-Features:
-* Adds new setting for disabling strict totalStock check.
-  - The new check box in setting allows users to loosen the check on the stocks
-  - Let them just use the app for recording the transactions only. 
-  - CP wont be correct and will depend upon latest transaction regardless of the old stock.
-  - It will give less accurate profit picture but will enable use of app without much investment of counting existing items
-
-* When strict checking of totalStock is disabled. It is required to give the costprice & markedPrice of item while registering. 
-   - A new cp & mp field will be added in itemEntryForm but only visible when aforementioned setting is applied.
+Fixes:
+* Fix item cache refresh after saving settings.
+* Fix the unhelpful empty message in transaction profit viewer.
+* Removed the dead verify account button and *Unverifed text in side bar
+* Moved the app settings at top

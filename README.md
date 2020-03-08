@@ -1,16 +1,24 @@
-# bk_app
+# Inventory management and bookkeeping app
+A practical approach to bookeeping in retail or small business.
+This app is focused on making the sales entry, stock entry as fast as practically possible.
 
-A new Flutter project.
+![Build](https://github.com/hemanta212/hello_flutter/workflows/Bookkeeping_app/badge.svg)
 
-## Getting Started
+## App overview
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+## Project Installation:
+### 1. Building yourself
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+* First Install flutter : [Flutter Installation](https://flutter.dev/docs/get-started/install)
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+$ git clone https://github.com/hemanta212/bookkeeping_app.git
+$ cd bookkeeping_app
+$ flutter upgrade
+$ flutter pub get
+$ flutter run
+```
+
+### 2. Install and try out the apk!
+Head over to the release page to try out the apps. [APK Releases](https://github.com/hemanta212/bookkeeping_app/releases/latest)

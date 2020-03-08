@@ -1,12 +1,14 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:bk_app/models/user.dart';
 import 'package:bk_app/services/crud.dart';
 import 'package:bk_app/utils/loading.dart';
 import 'package:bk_app/utils/scaffold.dart';
 import 'package:bk_app/utils/window.dart';
+import 'package:bk_app/utils/cache.dart';
 import 'package:bk_app/app/wrapper.dart';
 import 'package:bk_app/services/auth.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 class Setting extends StatefulWidget {
   @override
@@ -81,6 +83,23 @@ class SettingState extends State<Setting> {
                       Form(
                         key: _formKey,
                         child: Column(children: <Widget>[
+
+                          Container(
+                            padding: EdgeInsets.all(10.0),
+                            child: Text('App settings',
+                                style: localTheme.textTheme.title),
+                          ),
+
+                          Row(children: <Widget>[
+                            Text("Enforce stock checking",
+                                style: localTheme.textTheme.subhead),
+                            Checkbox(
+                                value: this.checkStock,
+                                onChanged: (bool val) {
+                                  setState(() => this.checkStock = val);
+                                }),
+                          ]),
+
                           Container(
                             padding: EdgeInsets.all(10.0),
                             child: Text('Account settings',
@@ -112,26 +131,6 @@ class SettingState extends State<Setting> {
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(5.0)),
                               )),
-                          Visibility(
-                              visible: _userData.verified ? false : true,
-                              child: Row(children: <Widget>[
-                                RaisedButton(
-                                  color: Colors.red,
-                                  child: Text('Email Not verified',
-                                      style: TextStyle(color: Colors.white)),
-                                  onPressed: () {},
-                                ),
-                                SizedBox(width: 20.0),
-                                RaisedButton(
-                                    color: Colors.blue[400],
-                                    child: Text(
-                                      'Send verification',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    onPressed: () async {
-                                      print("sending verification");
-                                    })
-                              ])),
 
                           SizedBox(height: 20.0),
                           Row(children: <Widget>[
@@ -155,21 +154,6 @@ class SettingState extends State<Setting> {
                           ]),
                           this.showRolesMapping(_userData),
                           SizedBox(height: 20.0),
-
-                          Container(
-                            padding: EdgeInsets.all(10.0),
-                            child: Text('App settings',
-                                style: localTheme.textTheme.title),
-                          ),
-                          Row(children: <Widget>[
-                            Text("Enforce stock checking",
-                                style: localTheme.textTheme.subhead),
-                            Checkbox(
-                                value: this.checkStock,
-                                onChanged: (bool val) {
-                                  setState(() => this.checkStock = val);
-                                }),
-                          ]),
 
                           // save
                           Padding(
@@ -208,6 +192,7 @@ class SettingState extends State<Setting> {
       }
       print("saving this.userData ${this.userData.roles}");
       crudHelper.updateUserData(this.userData);
+      await StartupCache(userData: userData).itemMap;
       Navigator.pop(context);
     }
   }

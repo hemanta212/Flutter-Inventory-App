@@ -192,7 +192,7 @@ class TransactionListState extends State<TransactionList> {
 
     if (salesTransactions.isEmpty) {
       WindowUtils.showAlertDialog(
-          context, "Failed!", "Sales history is empty!");
+          context, "Failed!", "Sales history for today is empty");
       return;
     }
 

@@ -11,7 +11,7 @@ class CustomScaffold {
         child: ListView(padding: EdgeInsets.zero, children: <Widget>[
       UserAccountsDrawerHeader(
         accountName: Text(userData.email),
-        accountEmail: Text(userData.verified ? "" : "*Unverified"),
+        accountEmail: Text(''),
         currentAccountPicture: CircleAvatar(
           backgroundColor: Theme.of(context).platform == TargetPlatform.iOS
               ? Colors.blue
