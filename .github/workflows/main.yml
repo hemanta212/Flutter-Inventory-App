@@ -1,12 +1,24 @@
+name: Build
 on:
   push:
 
-name: Build
 jobs:
   linux:
-    name: Android
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout bookkeeping app
+        uses: actions/checkout@v2
+        with:
+          path: 'app'
+
+      - name: Checkout credentials repo
+        uses: actions/checkout@v2
+        with:
+          repository: hemanta212/personal
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          ref: "master"
+          path: 'personal'
+
       - run: |
           git clone https://github.com/flutter/flutter.git
           cd flutter
@@ -16,12 +28,10 @@ jobs:
         with:
           java-version: '12.x'
 
-      - uses: actions/checkout@v2
-        with:
-          path: 'app'
-
       - run: |
           cd app
+          cp ../personal/credentials/inventory_flutter/google-services.json android/app/
+
           flutter pub get
           flutter build apk
           mkdir build/app/outputs/apk/app_release
@@ -38,5 +48,6 @@ jobs:
             app/build/app/outputs/apk/release/app-x86_64-release.apk
             app/build/app/outputs/apk/app_release/app-release.apk
           body_path: app/CHANGELOG.txt
+          tag_name: ${{ github.event.client_payload.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
