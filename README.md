@@ -4,6 +4,18 @@ This app is focused on making the sales entry, stock entry as fast as practicall
 
 ![Build](https://github.com/hemanta212/inventory_app/workflows/Build/badge.svg)
 
+## Features/Concepts Highlights
+* Advanced state management solutions like provider,
+* Use of singleton objects for caching and accessing the instance throughout the code.
+* Implementation of Navigation Drawers, tabs, search bars, autocompletion and fuzzy like search algorithms.
+* Use of Streams for live UI updates, Datatables for better data view, routes for screens.
+* Using batches for failproof db operations, Role base db modifications.
+* Testing in flutter application.
+* Data Export/Import from CSV dumps.
+* Online and Offline No SQL data storage with firebase's cloud_firestore.
+* Integration of Authentication like google signin, email authentication with firebase_auth.
+* Continuous integration for streamlined devflow
+
 ## App overview
 <img src="images/1.png" width="280"/> <img src="images/2.png" width="280"/> <img src="images/3.png" width="280" /><img src="images/4.png" width="280" />
 <img src="images/5.png" width="280"/> <img src="images/6.png" width="280"/> <img src="images/7.png" width="280" /><img src="images/8.png" width="280" />
