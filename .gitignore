@@ -39,3 +39,4 @@ lib/generated_plugin_registrant.dart
 
 #Vim
 Session.vim
+/android/app/google-services.json
